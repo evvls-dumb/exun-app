@@ -1,0 +1,66 @@
+.page {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  padding: 24px;
+}
+
+.layout {
+  display: flex;
+  align-items: stretch;
+  gap: 16px;
+  width: 100%;
+  max-width: 820px;
+}
+
+.setup {
+  flex: 1.4 1 0;
+}
+
+.mark {
+  height: 28px;
+  width: auto;
+}
+
+.label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-text-muted);
+}
+
+.notice {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  column-gap: 10px;
+  row-gap: 4px;
+}
+
+.noticeIcon {
+  color: var(--color-danger);
+}
+
+.noticeTitle {
+  margin: 0;
+  font-weight: 500;
+  color: var(--color-danger);
+}
+
+.noticeText {
+  grid-column: 2;
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--color-text-muted);
+}
+
+.error {
+  margin: 0;
+  font-size: 13px;
+  color: var(--color-danger);
+}
+
+.start {
+  margin-top: auto;
+}

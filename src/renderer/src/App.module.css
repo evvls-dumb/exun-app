@@ -1,0 +1,15 @@
+.stage {
+  height: 100%;
+  animation: enter 0.5s ease backwards;
+  transition: opacity 0.3s ease;
+}
+
+.stage[data-leaving] {
+  opacity: 0;
+}
+
+@keyframes enter {
+  from {
+    opacity: 0;
+  }
+}

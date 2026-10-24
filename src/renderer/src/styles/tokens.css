@@ -1,0 +1,19 @@
+:root {
+  --color-bg: #0b0b0d;
+  --color-surface: #141417;
+  --color-surface-hover: #1b1b20;
+  --color-border: #26262c;
+  --color-border-strong: #3a3a43;
+  --color-text: #ffffff;
+  --color-text-muted: #8d8d99;
+  --color-accent: #402096;
+  --color-accent-hover: #4a28ab;
+  --color-accent-active: #371a80;
+  --color-danger: #ff7b7b;
+
+  --font-sans: 'Geist', system-ui, sans-serif;
+  --font-mono: 'Geist Mono', ui-monospace, monospace;
+
+  --radius: 8px;
+  --radius-lg: 14px;
+}
