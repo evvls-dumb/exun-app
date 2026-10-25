@@ -1,0 +1,14 @@
+.page {
+  display: grid;
+  flex: 1;
+  grid-template-columns: minmax(230px, 300px) minmax(0, 1fr);
+  gap: 12px;
+  min-width: 0;
+  min-height: 0;
+}
+
+@media (max-width: 1000px) {
+  .page {
+    grid-template-columns: minmax(200px, 240px) minmax(0, 1fr);
+  }
+}

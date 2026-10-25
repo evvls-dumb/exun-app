@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { CircleAlert } from 'lucide-react'
 import logo from '@assets/logo.png'
+import Analysing from '@/components/Analysing'
 import Button from '@/components/Button'
 import Panel from '@/components/Panel'
 import PathField from '@/components/PathField'
@@ -8,6 +9,8 @@ import { useLogsFile } from '@/hooks/useLogsFile'
 import type { Session } from '@shared/session'
 import RecentSessions from './RecentSessions'
 import styles from './SessionSetupPage.module.css'
+
+const ANALYSE_MS = 4200
 
 interface SessionSetupPageProps {
   onSessionOpen: (session: Session) => void
@@ -23,12 +26,23 @@ export default function SessionSetupPage({ onSessionOpen }: SessionSetupPageProp
     setStarting(true)
     setError(null)
     try {
-      onSessionOpen(await window.janus.sessions.create(logsFile.path))
+      const [session] = await Promise.all([
+        window.janus.sessions.create(logsFile.path),
+        new Promise((resolve) => setTimeout(resolve, ANALYSE_MS))
+      ])
+      onSessionOpen(session)
     } catch {
       setError('The logs file can’t be read. Run the CLI to pull it again.')
-    } finally {
       setStarting(false)
     }
+  }
+
+  if (starting) {
+    return (
+      <main className={styles.page}>
+        <Analysing />
+      </main>
+    )
   }
 
   return (
@@ -40,7 +54,10 @@ export default function SessionSetupPage({ onSessionOpen }: SessionSetupPageProp
           icon={<img className={styles.mark} src={logo} alt="" draggable={false} />}
           className={styles.setup}
         >
-          <span className={styles.label}>Logs file</span>
+          <div className={styles.labelRow}>
+            <span className={styles.label}>Logs file</span>
+            {logsFile.status === 'found' && <span className={styles.tag}>Auto detected</span>}
+          </div>
 
           {logsFile.status === 'missing' ? (
             <div className={styles.notice} role="status">

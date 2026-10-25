@@ -1,0 +1,24 @@
+.grid {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+  gap: 12px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-rows: minmax(240px, 1.35fr) minmax(170px, 1fr) minmax(170px, 1fr);
+  overflow-y: auto;
+  grid-template-areas:
+    "usage   usage  summary"
+    "reading ledger summary"
+    "temp    ledger summary";
+}
+
+.danger {
+  color: var(--color-danger);
+}
+
+.sample {
+  padding: 2px 8px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: 999px;
+  font-size: 11px;
+}

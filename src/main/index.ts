@@ -1,5 +1,7 @@
 import { join } from 'node:path'
 import { app, BrowserWindow, shell } from 'electron'
+import icon from '../assets/icon.png?asset'
+import { registerBackend } from '../backend'
 import { registerIpc } from './ipc/register'
 
 const WINDOW_BACKGROUND = '#0b0b0d'
@@ -14,6 +16,7 @@ function createWindow(): void {
     autoHideMenuBar: true,
     backgroundColor: WINDOW_BACKGROUND,
     title: 'Janus',
+    icon,
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       contextIsolation: true,
@@ -37,7 +40,9 @@ function createWindow(): void {
 }
 
 app.whenReady().then(() => {
+  app.setAppUserModelId('com.janus.app')
   registerIpc()
+  registerBackend()
   createWindow()
 
   app.on('activate', () => {

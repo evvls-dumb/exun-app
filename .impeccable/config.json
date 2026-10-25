@@ -1,0 +1,17 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "gradient-text",
+        "value": "*",
+        "files": [
+          "src/renderer/src/pages/ai/AgentTrace.module.css"
+        ],
+        "createdAt": "2026-10-25T21:10:11.606Z",
+        "reason": "Running-step shimmer matches the AI-thinking text shimmer the user requested for the Analysing screen"
+      }
+    ]
+  }
+}

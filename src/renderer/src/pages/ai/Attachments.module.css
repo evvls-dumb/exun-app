@@ -1,0 +1,166 @@
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: min(78%, 720px);
+  min-width: 320px;
+}
+
+.chart {
+  margin: 0;
+  padding: 14px 14px 8px;
+  background: rgb(255 255 255 / 0.03);
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  animation: arrive 0.3s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+}
+
+.chartTitle {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 4px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.unit {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--color-text-muted);
+}
+
+.plot {
+  height: 210px;
+}
+
+.tip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border-strong);
+  border-radius: 999px;
+  font-size: 12px;
+  white-space: nowrap;
+  color: var(--color-text);
+}
+
+.tipDate {
+  color: var(--color-text-muted);
+}
+
+.tipFlag {
+  padding: 1px 7px;
+  background: rgb(255 123 123 / 0.14);
+  border-radius: 999px;
+  font-size: 10.5px;
+  color: var(--color-danger);
+}
+
+.tipFlag[data-tone='flag'] {
+  background: rgb(240 176 80 / 0.14);
+  color: var(--color-warn);
+}
+
+.file {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 12px 12px 12px;
+  background: rgb(255 255 255 / 0.03);
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  animation: arrive 0.3s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+}
+
+.badge {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 40px;
+  height: 48px;
+  background: linear-gradient(160deg, #e2475a, #a91e33);
+  border-radius: 6px 14px 6px 6px;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: #fff;
+}
+
+.file[data-format='csv'] .badge {
+  background: linear-gradient(160deg, #2f9e66, #1d6b45);
+}
+
+.fileText {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.fileName {
+  overflow: hidden;
+  font-size: 13px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fileMeta {
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+.fileActions {
+  display: flex;
+  flex: none;
+  gap: 6px;
+}
+
+.primary,
+.secondary {
+  height: 30px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.primary {
+  background: #f2f2f4;
+  color: #141416;
+}
+
+.primary:hover {
+  background: #fff;
+}
+
+.secondary {
+  background: rgb(255 255 255 / 0.06);
+  color: var(--color-text);
+}
+
+.secondary:hover {
+  background: rgb(255 255 255 / 0.12);
+}
+
+.primary:focus-visible,
+.secondary:focus-visible {
+  outline: 2px solid var(--color-accent-bright);
+  outline-offset: 2px;
+}
+
+@keyframes arrive {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}

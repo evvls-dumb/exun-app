@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { prefersReducedMotion } from '@/lib/motion'
 
 const GLYPHS = '!<>-_\\/[]{}=+*^?#%&$01'
 const FIXED_CHARS = /[\s\\/]/
@@ -14,10 +15,6 @@ function scramble(text: string, revealed: number): string {
   return Array.from(text, (char, index) =>
     index < revealed || FIXED_CHARS.test(char) ? char : randomGlyph()
   ).join('')
-}
-
-function prefersReducedMotion(): boolean {
-  return window.matchMedia('(prefers-reduced-motion: reduce)').matches
 }
 
 export function useDecrypt(text: string): string {

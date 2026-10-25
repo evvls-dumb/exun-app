@@ -17,6 +17,7 @@ export default function App() {
   const showLogin = useCallback(() => show('login'), [show])
   const goToGreeting = useCallback(() => go('greeting'), [go])
   const goToSession = useCallback(() => go('session'), [go])
+  const logout = useCallback(() => go('login'), [go])
 
   function openSession(next: Session) {
     setSession(next)
@@ -29,7 +30,7 @@ export default function App() {
       {screen === 'login' && <LoginPage onLogin={goToGreeting} />}
       {screen === 'greeting' && <GreetingPage onDone={goToSession} />}
       {screen === 'session' && <SessionSetupPage onSessionOpen={openSession} />}
-      {screen === 'workspace' && session && <WorkspacePage session={session} />}
+      {screen === 'workspace' && session && <WorkspacePage session={session} onLogout={logout} />}
     </div>
   )
 }
