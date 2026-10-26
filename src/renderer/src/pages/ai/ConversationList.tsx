@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Check, Plus, Trash2 } from 'lucide-react'
+import { Check, PanelLeftClose, PanelLeftOpen, Plus, Trash2 } from 'lucide-react'
 import { formatListTime } from '@/lib/format'
 import type { AiStatus, ConversationSummary } from '@shared/ai'
 import styles from './ConversationList.module.css'
@@ -10,6 +10,8 @@ interface ConversationListProps {
   conversations: readonly ConversationSummary[]
   activeId: string | null
   status: AiStatus | null
+  collapsed: boolean
+  onToggle: () => void
   onSelect: (id: string) => void
   onNew: () => void
   onRemove: (id: string) => void
@@ -20,6 +22,8 @@ export default function ConversationList({
   conversations,
   activeId,
   status,
+  collapsed,
+  onToggle,
   onSelect,
   onNew,
   onRemove,
@@ -38,15 +42,41 @@ export default function ConversationList({
   }
 
   return (
-    <section className={styles.panel} aria-label="Conversations">
+    <section
+      className={styles.panel}
+      aria-label="Conversations"
+      data-collapsed={collapsed || undefined}
+    >
       <header className={styles.header}>
         <h2 className={styles.title}>Conversations</h2>
-        <button className={styles.new} type="button" aria-label="New chat" onClick={onNew}>
-          <Plus size={16} strokeWidth={1.75} aria-hidden="true" />
-        </button>
+        <div className={styles.actions}>
+          <button
+            className={styles.new}
+            type="button"
+            aria-label={collapsed ? 'Show conversations' : 'Hide conversations'}
+            aria-expanded={!collapsed}
+            title={collapsed ? 'Show conversations' : 'Hide conversations'}
+            onClick={onToggle}
+          >
+            {collapsed ? (
+              <PanelLeftOpen size={16} strokeWidth={1.75} aria-hidden="true" />
+            ) : (
+              <PanelLeftClose size={16} strokeWidth={1.75} aria-hidden="true" />
+            )}
+          </button>
+          <button
+            className={styles.new}
+            type="button"
+            aria-label="New chat"
+            title="New chat"
+            onClick={onNew}
+          >
+            <Plus size={16} strokeWidth={1.75} aria-hidden="true" />
+          </button>
+        </div>
       </header>
 
-      {conversations.length === 0 ? (
+      {collapsed ? null : conversations.length === 0 ? (
         <p className={styles.empty}>Your chats will appear here.</p>
       ) : (
         <ul className={styles.list}>
@@ -104,7 +134,7 @@ export default function ConversationList({
         </ul>
       )}
 
-      {status?.source === 'stored' && (
+      {!collapsed && status?.source === 'stored' && (
         <footer className={styles.footer}>
           <span className={styles.key}>Key saved on this device</span>
           <button className={styles.remove} type="button" onClick={onClearKey}>

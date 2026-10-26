@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import type { Analysis } from '@shared/meter'
 import { useChat } from '@/hooks/useChat'
 import { formatNumber, formatShortDate, todayIso } from '@/lib/format'
@@ -10,6 +10,23 @@ import type { MenuOption } from './ComposerMenu'
 import ConversationList from './ConversationList'
 
 const DEFAULT_TITLE = 'New chat'
+const COLLAPSED_KEY = 'janus.conversationsCollapsed'
+
+function readCollapsed(): boolean {
+  try {
+    return window.localStorage.getItem(COLLAPSED_KEY) === '1'
+  } catch {
+    return false
+  }
+}
+
+function writeCollapsed(collapsed: boolean) {
+  try {
+    window.localStorage.setItem(COLLAPSED_KEY, collapsed ? '1' : '0')
+  } catch {
+    // Persisting is a convenience; the toggle still works without it.
+  }
+}
 
 function dayStatus(day: Analysis['days'][number]): string {
   if (day.spike) return 'Spike'
@@ -34,6 +51,14 @@ interface AiPageProps {
 
 export default function AiPage({ analysis }: AiPageProps) {
   const chat = useChat()
+  const [collapsed, setCollapsed] = useState(readCollapsed)
+
+  function toggleCollapsed() {
+    setCollapsed((current) => {
+      writeCollapsed(!current)
+      return !current
+    })
+  }
 
   const caseData = useMemo(
     () => ({
@@ -63,11 +88,13 @@ export default function AiPage({ analysis }: AiPageProps) {
     DEFAULT_TITLE
 
   return (
-    <div className={styles.page}>
+    <div className={styles.page} data-collapsed={collapsed || undefined}>
       <ConversationList
         conversations={chat.conversations}
         activeId={chat.activeId}
         status={status}
+        collapsed={collapsed}
+        onToggle={toggleCollapsed}
         onSelect={chat.select}
         onNew={chat.startNew}
         onRemove={chat.remove}

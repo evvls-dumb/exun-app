@@ -5,10 +5,21 @@
   gap: 12px;
   min-width: 0;
   min-height: 0;
+  transition: grid-template-columns 0.22s ease;
 }
 
 @media (max-width: 1000px) {
   .page {
     grid-template-columns: minmax(200px, 240px) minmax(0, 1fr);
+  }
+}
+
+.page[data-collapsed] {
+  grid-template-columns: minmax(58px, 58px) minmax(0, 1fr);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page {
+    transition: none;
   }
 }
