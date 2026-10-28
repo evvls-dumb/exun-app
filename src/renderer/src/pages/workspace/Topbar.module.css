@@ -2,6 +2,7 @@
   display: flex;
   align-items: center;
   gap: 12px;
+  min-height: 50px;
 }
 
 .logoSlot {
@@ -59,42 +60,4 @@
   margin: 2px 0 0;
   font-size: 12px;
   color: var(--color-text-muted);
-}
-
-.search {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  width: clamp(200px, 22vw, 280px);
-  height: 50px;
-  padding: 0 20px;
-  background: var(--color-card);
-  border: 1px solid var(--color-border);
-  border-radius: 999px;
-  color: var(--color-text-muted);
-}
-
-.search:focus-within {
-  border-color: var(--color-border-strong);
-}
-
-.input {
-  flex: 1;
-  min-width: 0;
-  background: transparent;
-  border: 0;
-  outline: 0;
-  font-size: 13px;
-  user-select: text;
-}
-
-.input::placeholder {
-  color: var(--color-text-muted);
-}
-
-.premium {
-  height: 50px;
-  margin-left: 8px;
-  padding: 0 30px;
-  border-radius: 999px;
 }

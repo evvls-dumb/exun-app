@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto'
 import type { Attachment, ChartMetric, ChartSpec } from '../../shared/ai'
 import { formatNumber, formatShortDate } from '../../shared/format'
 import { CASE_FILE } from '../../shared/caseFile'
+import { GAME_SOURCE, SOURCE_ANALYSIS } from '../../shared/gameSource'
 import {
   VERDICT_LABELS,
   formatShare,
@@ -282,6 +283,42 @@ function explanationsSummary(cross: CrossCheck): string {
   return `${count('ruled_out')} ruled out, ${count('unlikely')} don’t fit, ${count('open')} open`
 }
 
+function sourceOutput() {
+  const analysis = SOURCE_ANALYSIS
+  return {
+    file: GAME_SOURCE.file,
+    original: {
+      origin: GAME_SOURCE.original.origin,
+      lines: analysis.original.lines.length,
+      classes: analysis.original.classes.map((item) => item.name)
+    },
+    recovered: {
+      origin: GAME_SOURCE.recovered.origin,
+      lines: analysis.recovered.lines.length,
+      classes: analysis.recovered.classes.map((item) => item.name)
+    },
+    lines_removed: analysis.removedLines,
+    lines_added: analysis.addedLines,
+    classes_removed: analysis.removedClasses.map((item) => ({
+      name: item.name,
+      original_lines: `${item.startLine}-${item.endLine}`,
+      members: item.members
+    })),
+    lines_still_using_removed_classes: analysis.dangling.map((use) => ({
+      line: use.line,
+      uses: use.name,
+      kind: use.kind,
+      code: use.text
+    })),
+    recovered_source_compiles: analysis.compiles
+  }
+}
+
+function sourceSummary(): string {
+  const names = SOURCE_ANALYSIS.removedClasses.map((item) => item.name).join(', ') || 'No class'
+  return `${names} removed · ${SOURCE_ANALYSIS.dangling.length} dependent lines · ${SOURCE_ANALYSIS.compiles ? 'compiles' : 'won’t compile'}`
+}
+
 const RANGE_PROPERTIES = {
   from: { type: 'string', description: 'First day to include, YYYY-MM-DD. Omit to start at the beginning of the log.' },
   to: { type: 'string', description: 'Last day to include, YYYY-MM-DD. Omit to run to the end of the log.' }
@@ -292,7 +329,7 @@ const TOOLS: AgentTool[] = [
     spec: {
       name: 'investigate_log',
       description:
-        'Run the standard investigation in one call: anomaly scan, integrity audit, statistics for the whole log, the cost of the abnormal consumption and, when cabinet logs are loaded, the cabinet cross-check (energy budget, forensic checks, the Dossier explanations tested). Start here for any broad request or before writing a report.',
+        'Run the standard investigation in one call: anomaly scan, integrity audit, statistics for the whole log, the cost of the abnormal consumption, the game source comparison and, when cabinet logs are loaded, the cabinet cross-check (energy budget, forensic checks, the Dossier explanations tested). Start here for any broad request or before writing a report.',
       parameters: {
         type: 'object',
         properties: {
@@ -318,6 +355,7 @@ const TOOLS: AgentTool[] = [
           integrity: integrity.output,
           statistics: statistics.output,
           impact: impact.output,
+          game_source: sourceOutput(),
           cabinet: machine
             ? {
                 ...explanationsOutput(machine.cross),
@@ -330,6 +368,7 @@ const TOOLS: AgentTool[] = [
           anomalies.summary,
           integrity.summary,
           impact.summary,
+          sourceSummary(),
           ...(machine ? [explanationsSummary(machine.cross)] : [])
         ].join(' · ')
       }
@@ -1101,6 +1140,16 @@ const TOOLS: AgentTool[] = [
         summary: seal.intact ? `Seal intact · ${seal.current.slice(0, 12)}…` : 'File changed since sealing'
       }
     }
+  },
+  {
+    spec: {
+      name: 'compare_game_source',
+      description:
+        'Compare the original source of The Reckoning V: Origins with the copy recovered from the cabinet on Oct 24: line diff, classes declared in each, members of any removed class, every line in the recovered copy that still uses a removed class, and whether the recovered copy can compile.',
+      parameters: { type: 'object', properties: {} }
+    },
+    label: () => 'Comparing the game source',
+    run: () => ({ output: sourceOutput(), summary: sourceSummary() })
   },
   {
     spec: {

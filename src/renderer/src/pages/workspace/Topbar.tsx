@@ -1,18 +1,15 @@
-import { Search } from 'lucide-react'
 import logo from '@assets/logo.png'
-import Button from '@/components/Button'
 import { AGENT_CODENAME } from '@/config'
 import type { View } from './Sidebar'
 import styles from './Topbar.module.css'
 
 interface TopbarProps {
   view: View
-  machineTitle?: string
   site?: string
 }
 
-export default function Topbar({ view, machineTitle, site }: TopbarProps) {
-  const cabinet = [machineTitle, site?.split(',')[0]].filter(Boolean).join(' · ')
+export default function Topbar({ view, site }: TopbarProps) {
+  const arcade = site?.split(',')[0]
 
   return (
     <header className={styles.topbar}>
@@ -29,27 +26,21 @@ export default function Topbar({ view, machineTitle, site }: TopbarProps) {
           <h1 className={styles.greeting}>
             Arcade Box <span className={styles.accent}>Analysis</span>
           </h1>
-          <p className={styles.subtitle}>{cabinet ? `${cabinet} · from logs.janus` : 'Cabinet telemetry from logs.janus'}</p>
+          <p className={styles.subtitle}>{arcade ? `${arcade} · cabinet telemetry from logs.janus` : 'Cabinet telemetry from logs.janus'}</p>
+        </div>
+        <div className={styles.intro} data-visible={view === 'source' || undefined} aria-hidden={view !== 'source'}>
+          <h1 className={styles.greeting}>
+            Game Source <span className={styles.accent}>Forensics</span>
+          </h1>
+          <p className={styles.subtitle}>Check the game code for any changes or tamper</p>
         </div>
         <div className={styles.intro} data-visible={view === 'ai' || undefined} aria-hidden={view !== 'ai'}>
           <h1 className={styles.greeting}>
             Janus <span className={styles.accent}>AI Agent</span>
           </h1>
-          <p className={styles.subtitle}>Investigates the meter log and the arcade box, charts them and writes reports</p>
+          <p className={styles.subtitle}>Investigates the meter log, the arcade box and the game source, and writes reports</p>
         </div>
       </div>
-
-      <label className={styles.search}>
-        <Search size={16} aria-hidden="true" />
-        <input
-          className={styles.input}
-          type="search"
-          placeholder="Search for events & more"
-          aria-label="Search"
-          spellCheck={false}
-        />
-      </label>
-      <Button className={styles.premium}>hi lol</Button>
     </header>
   )
 }

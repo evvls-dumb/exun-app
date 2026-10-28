@@ -1,12 +1,13 @@
 import { useEffect, useRef, type CSSProperties } from 'react'
-import { BrainCircuit, Gamepad2, House, LogOut } from 'lucide-react'
+import { BrainCircuit, FileCode, Gamepad2, House, LogOut } from 'lucide-react'
 import styles from './Sidebar.module.css'
 
-export type View = 'home' | 'machine' | 'ai'
+export type View = 'home' | 'machine' | 'source' | 'ai'
 
 const NAV_ITEMS = [
   { id: 'home', label: 'Home', icon: House },
   { id: 'machine', label: 'Arcade box', icon: Gamepad2 },
+  { id: 'source', label: 'Game source', icon: FileCode },
   { id: 'ai', label: 'AI chat', icon: BrainCircuit }
 ] as const
 

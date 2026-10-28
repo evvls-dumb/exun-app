@@ -17,6 +17,7 @@ import {
   ChevronRight,
   CircleCheck,
   Coins,
+  FileDiff,
   FileSpreadsheet,
   FileText,
   GitCompareArrows,
@@ -55,7 +56,8 @@ const TOOL_ICONS: Record<string, LucideIcon> = {
   read_journal: ScrollText,
   test_explanations: Gavel,
   verify_evidence: Fingerprint,
-  case_timeline: Waypoints
+  case_timeline: Waypoints,
+  compare_game_source: FileDiff
 }
 
 interface AgentTraceProps {

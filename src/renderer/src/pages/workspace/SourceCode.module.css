@@ -1,0 +1,90 @@
+.scroll {
+  flex: 1;
+  min-height: 0;
+  margin: 0 -8px;
+  overflow: auto;
+  border-radius: 12px;
+  background: rgb(0 0 0 / 0.22);
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 20px;
+}
+
+.table td {
+  padding: 0 8px;
+  vertical-align: top;
+}
+
+.table tr:first-child td {
+  padding-top: 8px;
+}
+
+.table tr:last-child td {
+  padding-bottom: 8px;
+}
+
+.table .number {
+  width: 1%;
+  min-width: 36px;
+  color: rgb(255 255 255 / 0.28);
+  text-align: right;
+  user-select: none;
+}
+
+.table .marker {
+  width: 1%;
+  padding: 0 2px;
+  color: var(--color-text-muted);
+  text-align: center;
+  user-select: none;
+}
+
+.table .text {
+  width: 100%;
+}
+
+tr[data-tone="removed"] td {
+  background: rgb(255 123 123 / 0.1);
+}
+
+tr[data-tone="removed"] .marker,
+tr[data-tone="removed"] .number {
+  color: var(--color-danger);
+}
+
+tr[data-tone="added"] td {
+  background: rgb(95 211 154 / 0.1);
+}
+
+tr[data-tone="added"] .marker {
+  color: var(--color-success);
+}
+
+tr[data-tone="use"] td {
+  background: rgb(255 180 84 / 0.1);
+}
+
+tr[data-tone="use"] .marker,
+tr[data-tone="use"] .number {
+  color: var(--color-warn);
+}
+
+.table .fold td {
+  padding: 4px 12px;
+  font-family: var(--font-sans);
+  font-size: 11px;
+  color: var(--color-text-muted);
+  background: rgb(255 255 255 / 0.03);
+  border-block: 1px dashed rgb(255 255 255 / 0.07);
+}
+
+.table .fold[data-tone="removed"] td {
+  color: var(--color-danger);
+  background: rgb(255 123 123 / 0.08);
+  border-color: rgb(255 123 123 / 0.25);
+}

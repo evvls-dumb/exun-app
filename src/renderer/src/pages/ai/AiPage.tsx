@@ -36,15 +36,12 @@ function dayStatus(day: Analysis['days'][number]): string {
   return 'Normal'
 }
 
-function buildSuggestions(analysis: Analysis): string[] {
-  const spike = analysis.days.find((day) => day.spike)
-  return [
-    'Investigate the case and write a PDF report',
-    'Test the Dossier’s explanations against the cabinet',
-    ...(spike ? [`Chart the ${formatShortDate(spike.date)} spike and estimate its cost`] : []),
-    'Verify the evidence seal on logs.janus'
-  ]
-}
+const SUGGESTIONS = [
+  'Investigate the case and write a PDF report',
+  'Test the Dossier’s explanations against the cabinet',
+  'Show what was removed from the game source',
+  'Verify the evidence seal on logs.janus'
+]
 
 interface AiPageProps {
   analysis: Analysis
@@ -70,7 +67,6 @@ export default function AiPage({ analysis, sessionId }: AiPageProps) {
     }),
     [analysis, sessionId]
   )
-  const suggestions = useMemo(() => buildSuggestions(analysis), [analysis])
   const mentions = useMemo<MenuOption<string>[]>(
     () =>
       [...analysis.days]
@@ -112,7 +108,7 @@ export default function AiPage({ analysis, sessionId }: AiPageProps) {
         needsKey={needsKey}
         canStoreKey={status?.canStoreKey ?? true}
         canChangeKey={status?.source === 'stored'}
-        suggestions={suggestions}
+        suggestions={SUGGESTIONS}
         onSuggest={(text) => void chat.send(text, options)}
         onRetry={() => chat.retry(options)}
         onDismissError={chat.dismissError}

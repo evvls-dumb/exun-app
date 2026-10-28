@@ -10,6 +10,7 @@ import AmbientField from './AmbientField'
 import DotField from './DotField'
 import HomeView from './HomeView'
 import MachineView from './MachineView'
+import SourceView from './SourceView'
 import Sidebar, { type View } from './Sidebar'
 import Topbar from './Topbar'
 import styles from './WorkspacePage.module.css'
@@ -45,11 +46,7 @@ export default function WorkspacePage({ session, onLogout }: WorkspacePageProps)
       <div className={styles.frame}>
         <AmbientField active={!intro && view === 'home'} />
 
-        <Topbar
-          view={view}
-          machineTitle={cabinet?.machine.title ?? session.machineTitle}
-          site={cabinet?.machine.site ?? session.site}
-        />
+        <Topbar view={view} site={cabinet?.machine.site ?? session.site} />
 
         <div className={styles.body}>
           <Sidebar view={view} onViewChange={setView} onLogout={onLogout} />
@@ -63,6 +60,7 @@ export default function WorkspacePage({ session, onLogout }: WorkspacePageProps)
             />
           )}
           {view === 'machine' && <MachineView meter={analysis} machine={machine} cross={cross} />}
+          {view === 'source' && <SourceView />}
           {view === 'ai' && <AiPage analysis={analysis} sessionId={session.id} />}
         </div>
 

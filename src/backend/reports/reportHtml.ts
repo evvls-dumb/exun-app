@@ -8,6 +8,7 @@ import {
   type EvidenceSeal,
   type MachineAnalysis
 } from '../../shared/machine'
+import { GAME_SOURCE, SOURCE_ANALYSIS } from '../../shared/gameSource'
 import { isFlagged, type Analysis, type DayRecord } from '../../shared/meter'
 
 export interface ReportEvidence {
@@ -162,6 +163,30 @@ tr.flagged td { font-weight: 600; }
 .note { margin-top: 28px; padding-top: 8px; border-top: 1px solid #e2e2e2; font-size: 7.5pt; color: #777; }
 `
 
+function sourceSection(heading: (text: string) => string): string {
+  const analysis = SOURCE_ANALYSIS
+  const removed = analysis.removedClasses
+  const figures = [
+    ['Lines in the original source', String(analysis.original.lines.length)],
+    ['Lines in the recovered source', String(analysis.recovered.lines.length)],
+    ['Lines removed', String(analysis.removedLines)],
+    ['Classes removed', removed.map((item) => item.name).join(', ') || 'None'],
+    ['Recovered lines that still use a removed class', String(analysis.dangling.length)],
+    ['Recovered source compiles', analysis.compiles ? 'Yes' : 'No']
+  ]
+  return `${heading('Game source comparison')}
+<p>${escape(GAME_SOURCE.title)}, ${escape(GAME_SOURCE.file)}. The original is compared line by line with the copy ${escape(GAME_SOURCE.recovered.origin.toLowerCase())}.</p>
+<table class="figures"><tbody>
+  ${figures.map(([label, value]) => `<tr><td>${label}</td><td class="num">${escape(value)}</td></tr>`).join('')}
+</tbody></table>
+${analysis.dangling.length
+    ? `<h3 class="sub">Lines that depend on the removed class</h3>
+<table class="evidence"><thead><tr><th class="num">Line</th><th>Code</th></tr></thead><tbody>
+  ${analysis.dangling.map((use) => `<tr><td class="num">${use.line}</td><td class="hash">${escape(use.text)}</td></tr>`).join('')}
+</tbody></table>`
+    : ''}`
+}
+
 function moment(at: string): string {
   return `${formatShortDate(localDate(at))} ${localDate(at).slice(0, 4)}, ${localTime(at)}`
 }
@@ -306,6 +331,7 @@ ${findingsHeading}
 ${findings}
 ${integrity}
 ${evidence ? cabinetSection(evidence, heading) : ''}
+${sourceSection(heading)}
 ${actions}
 <p class="note">Figures in this report are computed directly from the Energy Dossier meter log${evidence ? ' and the cabinet telemetry in logs.janus' : ''}. Statements about causes are inferences and should be verified on site before any action is taken.</p>
 ${appendix}
