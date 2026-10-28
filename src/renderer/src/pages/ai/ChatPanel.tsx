@@ -145,8 +145,8 @@ export default function ChatPanel({
                 />
               </h3>
               <p className={styles.sub} data-visible={typedAll || undefined}>
-                Ask about the loaded meter records. Janus answers from the data and won’t guess at
-                causes it can’t show.
+                Ask about the meter log or the arcade box. Janus answers from the evidence and won’t
+                guess at causes it can’t show.
               </p>
               <ul className={styles.suggestions} data-visible={typedAll || undefined}>
                 {suggestions.map((suggestion) => (

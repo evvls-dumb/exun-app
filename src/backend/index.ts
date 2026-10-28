@@ -9,6 +9,7 @@ import { NoteStore } from './agent/notes'
 import { registerAiIpc } from './ipc'
 import { ReportFiles } from './reports/files'
 import { renderPdf } from './reports/pdf'
+import type { MachineCase } from '../shared/machine'
 
 const cipher: SecretCipher = {
   isAvailable: () => safeStorage.isEncryptionAvailable(),
@@ -16,15 +17,15 @@ const cipher: SecretCipher = {
   decrypt: (data) => safeStorage.decryptString(data)
 }
 
-export function registerBackend(): void {
-  if (!app.isPackaged) loadLocalEnv(app.getAppPath())
+export function registerBackend(loadCase: (sessionId: string) => Promise<MachineCase>): void {
+  loadLocalEnv(app.isPackaged ? process.resourcesPath : app.getAppPath())
 
   const directory = app.getPath('userData')
   const credentials = new CredentialStore(directory, cipher)
   const conversations = new ConversationStore(directory)
   const provider = new GroqProvider(() => credentials.getKey())
   const files = new ReportFiles(join(app.getPath('documents'), 'Janus Reports'), renderPdf)
-  const service = new ChatService(provider, conversations, files, new NoteStore(directory))
+  const service = new ChatService(provider, conversations, files, new NoteStore(directory), loadCase)
 
   registerAiIpc({ service, conversations, credentials, files })
 }

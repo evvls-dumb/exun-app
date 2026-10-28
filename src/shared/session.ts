@@ -3,6 +3,10 @@ export interface StoredSession {
   logsPath: string
   createdAt: string
   lastOpenedAt: string
+  fingerprint?: string
+  sealedAt?: string
+  machineTitle?: string
+  site?: string
 }
 
 export interface Session extends StoredSession {

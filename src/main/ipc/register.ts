@@ -1,6 +1,7 @@
 import { ipcMain } from 'electron'
 import { IPC } from '../../shared/ipc'
 import { detectLogsFile } from '../logs/detect'
+import { machineReport } from '../machine/cases'
 import { createSession, listSessions, openSession } from '../sessions/store'
 
 function requireString(value: unknown, name: string): string {
@@ -21,5 +22,9 @@ export function registerIpc(): void {
 
   ipcMain.handle(IPC.openSession, (_event, id: unknown) =>
     openSession(requireString(id, 'id'))
+  )
+
+  ipcMain.handle(IPC.machineReport, (_event, sessionId: unknown) =>
+    machineReport(requireString(sessionId, 'sessionId'))
   )
 }

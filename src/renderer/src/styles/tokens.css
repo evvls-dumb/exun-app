@@ -19,6 +19,7 @@
 
   --font-sans: 'Geist', system-ui, sans-serif;
   --font-mono: 'Geist Mono', ui-monospace, monospace;
+  --font-numeric: 'Inter Variable', var(--font-sans);
 
   --radius: 8px;
   --radius-lg: 14px;

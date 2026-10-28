@@ -3,6 +3,7 @@ import { app, BrowserWindow, shell } from 'electron'
 import icon from '../assets/icon.png?asset'
 import { registerBackend } from '../backend'
 import { registerIpc } from './ipc/register'
+import { loadCase } from './machine/cases'
 
 const WINDOW_BACKGROUND = '#0b0b0d'
 
@@ -42,7 +43,7 @@ function createWindow(): void {
 app.whenReady().then(() => {
   app.setAppUserModelId('com.janus.app')
   registerIpc()
-  registerBackend()
+  registerBackend(loadCase)
   createWindow()
 
   app.on('activate', () => {

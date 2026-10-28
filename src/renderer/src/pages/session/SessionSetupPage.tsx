@@ -7,7 +7,6 @@ import Panel from '@/components/Panel'
 import PathField from '@/components/PathField'
 import { useLogsFile } from '@/hooks/useLogsFile'
 import type { Session } from '@shared/session'
-import RecentSessions from './RecentSessions'
 import styles from './SessionSetupPage.module.css'
 
 const ANALYSE_MS = 4200
@@ -89,8 +88,6 @@ export default function SessionSetupPage({ onSessionOpen }: SessionSetupPageProp
             Start session
           </Button>
         </Panel>
-
-        <RecentSessions onOpen={onSessionOpen} />
       </div>
     </main>
   )

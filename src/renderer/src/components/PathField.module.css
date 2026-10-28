@@ -1,6 +1,6 @@
 .field {
   display: flex;
-  flex: 1;
+  flex: none;
   align-items: center;
   min-width: 0;
   height: 44px;

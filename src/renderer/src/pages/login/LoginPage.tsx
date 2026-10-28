@@ -18,9 +18,12 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
 
   return (
     <main className={styles.page}>
-      <h1 className={styles.title}>
-        <DecryptText text="Welcome Back, Agent" />
-      </h1>
+      <div className={styles.heading}>
+        <h1 className={styles.title}>
+          <DecryptText text="Still here, Agent?" />
+        </h1>
+        <p className={styles.note}>Agency access is suspended. Your case stays on this device.</p>
+      </div>
 
       <form className={styles.form} onSubmit={handleSubmit}>
         <input

@@ -1,0 +1,13 @@
+.notice {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin: 8px 0 0;
+  font-size: 11px;
+  color: #5d5d66;
+}
+
+.notice[data-offline] {
+  color: var(--color-warn);
+}

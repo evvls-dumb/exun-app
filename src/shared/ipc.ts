@@ -3,6 +3,7 @@ export const IPC = {
   listSessions: 'sessions:list',
   createSession: 'sessions:create',
   openSession: 'sessions:open',
+  machineReport: 'machine:report',
   aiStatus: 'ai:status',
   aiSetKey: 'ai:set-key',
   aiClearKey: 'ai:clear-key',

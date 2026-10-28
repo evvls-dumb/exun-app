@@ -10,6 +10,9 @@ const api: JanusApi = {
     create: (logsPath) => ipcRenderer.invoke(IPC.createSession, logsPath),
     open: (id) => ipcRenderer.invoke(IPC.openSession, id)
   },
+  machine: {
+    report: (sessionId) => ipcRenderer.invoke(IPC.machineReport, sessionId)
+  },
   ai: {
     status: () => ipcRenderer.invoke(IPC.aiStatus),
     setKey: (key) => ipcRenderer.invoke(IPC.aiSetKey, key),

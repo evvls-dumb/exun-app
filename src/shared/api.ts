@@ -6,6 +6,7 @@ import type {
   ConversationSummary,
   SendRequest
 } from './ai'
+import type { MachineReport } from './machine'
 import type { Session } from './session'
 
 export interface JanusAiApi {
@@ -29,6 +30,9 @@ export interface JanusApi {
     list: () => Promise<Session[]>
     create: (logsPath: string) => Promise<Session>
     open: (id: string) => Promise<Session>
+  }
+  machine: {
+    report: (sessionId: string) => Promise<MachineReport>
   }
   ai: JanusAiApi
 }

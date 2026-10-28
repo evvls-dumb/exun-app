@@ -1,5 +1,6 @@
 import type { RefObject } from 'react'
 import { Fan } from 'lucide-react'
+import { localDate, localTime, type MachineAnalysis } from '@shared/machine'
 import type { Analysis } from '@shared/meter'
 import { formatNumber, formatShortDate } from '@/lib/format'
 import { ReadingChart, UsageChart, UsageLegend } from './Charts'
@@ -11,11 +12,12 @@ import styles from './HomeView.module.css'
 
 interface HomeViewProps {
   analysis: Analysis
+  latest: MachineAnalysis['thermal']['latest'] | null
   stageRef: RefObject<HTMLElement | null>
   isRevealed: (area: string) => boolean
 }
 
-export default function HomeView({ analysis, stageRef, isRevealed }: HomeViewProps) {
+export default function HomeView({ analysis, latest, stageRef, isRevealed }: HomeViewProps) {
   const { days, projectionGapKwh } = analysis
   const period = `${formatShortDate(days[0].date)} – ${formatShortDate(days[days.length - 1].date)}`
 
@@ -56,13 +58,17 @@ export default function HomeView({ analysis, stageRef, isRevealed }: HomeViewPro
         title="Machine Temp"
         icon={<Fan size={15} aria-hidden="true" />}
         meta={
-          <span className={styles.sample} title="The meter log has no temperature data">
-            Sample
-          </span>
+          latest ? (
+            <span className={styles.sample} title={`Last CPU reading in logs.janus, cabinet air ${formatNumber(latest.airC)} °C`}>
+              {formatShortDate(localDate(latest.at))} · {localTime(latest.at)}
+            </span>
+          ) : (
+            'Reading logs…'
+          )
         }
         revealed={isRevealed('temp')}
       >
-        <MachineTemp />
+        <MachineTemp celsius={latest?.cpuC ?? null} />
       </Widget>
     </main>
   )

@@ -3,6 +3,7 @@ import type { Analysis } from '@shared/meter'
 import { useChat } from '@/hooks/useChat'
 import { formatNumber, formatShortDate, todayIso } from '@/lib/format'
 import type { SendOptions } from '@/hooks/useChat'
+import AgentNotice from './AgentNotice'
 import styles from './AiPage.module.css'
 import ChatPanel from './ChatPanel'
 import Composer from './Composer'
@@ -38,18 +39,19 @@ function dayStatus(day: Analysis['days'][number]): string {
 function buildSuggestions(analysis: Analysis): string[] {
   const spike = analysis.days.find((day) => day.spike)
   return [
-    'Investigate this log and write a PDF report',
+    'Investigate the case and write a PDF report',
+    'Test the Dossier’s explanations against the cabinet',
     ...(spike ? [`Chart the ${formatShortDate(spike.date)} spike and estimate its cost`] : []),
-    'Audit the log’s integrity',
-    'Export the flagged days to CSV'
+    'Verify the evidence seal on logs.janus'
   ]
 }
 
 interface AiPageProps {
   analysis: Analysis
+  sessionId: string
 }
 
-export default function AiPage({ analysis }: AiPageProps) {
+export default function AiPage({ analysis, sessionId }: AiPageProps) {
   const chat = useChat()
   const [collapsed, setCollapsed] = useState(readCollapsed)
 
@@ -63,9 +65,10 @@ export default function AiPage({ analysis }: AiPageProps) {
   const caseData = useMemo(
     () => ({
       entries: analysis.days.map(({ date, reading, usage }) => ({ date, reading, usage })),
-      today: todayIso()
+      today: todayIso(),
+      sessionId
     }),
-    [analysis]
+    [analysis, sessionId]
   )
   const suggestions = useMemo(() => buildSuggestions(analysis), [analysis])
   const mentions = useMemo<MenuOption<string>[]>(
@@ -116,14 +119,17 @@ export default function AiPage({ analysis }: AiPageProps) {
         onChangeKey={chat.clearKey}
         onSaveKey={chat.saveKey}
         footer={
-          <Composer
-            mentions={mentions}
-            running={chat.running}
-            disabled={status === null || needsKey}
-            placeholder={needsKey ? 'Add an API key to start' : 'Ask about this case…'}
-            onSend={(text) => void chat.send(text, options)}
-            onStop={chat.cancel}
-          />
+          <>
+            <Composer
+              mentions={mentions}
+              running={chat.running}
+              disabled={status === null || needsKey}
+              placeholder={needsKey ? 'Add an API key to start' : 'Ask about this case…'}
+              onSend={(text) => void chat.send(text, options)}
+              onStop={chat.cancel}
+            />
+            <AgentNotice />
+          </>
         }
       />
     </div>

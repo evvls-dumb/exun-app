@@ -8,14 +8,12 @@
 
 .layout {
   display: flex;
-  align-items: stretch;
-  gap: 16px;
   width: 100%;
-  max-width: 820px;
+  max-width: 480px;
 }
 
 .setup {
-  flex: 1.4 1 0;
+  flex: 1;
 }
 
 .mark {
@@ -78,5 +76,5 @@
 }
 
 .start {
-  margin-top: auto;
+  margin-top: 4px;
 }

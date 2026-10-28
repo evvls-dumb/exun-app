@@ -1,6 +1,15 @@
 import { randomUUID } from 'node:crypto'
 import type { Attachment, ChartMetric, ChartSpec } from '../../shared/ai'
 import { formatNumber, formatShortDate } from '../../shared/format'
+import { CASE_FILE } from '../../shared/caseFile'
+import {
+  VERDICT_LABELS,
+  formatShare,
+  localDate,
+  type CrossCheck,
+  type MachineCase,
+  type MachineDay
+} from '../../shared/machine'
 import {
   HOURS_PER_DAY,
   SPIKE_FACTOR,
@@ -26,10 +35,15 @@ export interface FileSink {
   saveText(title: string, extension: string, text: string): Promise<SavedFile>
 }
 
+export interface MachineContext extends MachineCase {
+  cross: CrossCheck
+}
+
 export interface ToolContext {
   analysis: Analysis
   files: FileSink
   notes: NoteStore
+  machine: MachineContext | null
 }
 
 export interface ToolResult {
@@ -52,7 +66,12 @@ const DATE = /^\d{4}-\d{2}-\d{2}$/
 const DEFAULT_CO2_KG_PER_KWH = 0.71
 const MAX_TEXT = 2_000
 const SEVERITIES: readonly Severity[] = ['critical', 'high', 'medium', 'low']
-const METRICS: readonly ChartMetric[] = ['usage', 'meter_change', 'reading', 'load_kw']
+const METRICS: readonly ChartMetric[] = ['usage', 'meter_change', 'reading', 'load_kw', 'cabinet_wh', 'cabinet_peak_c']
+const MAX_HOURLY_ROWS = 72
+const MAX_DAILY_ROWS = 120
+const DEFAULT_CABINET_DAYS = 30
+const JOURNAL_LEVELS = ['INFO', 'WARN', 'ERROR'] as const
+const REPORTED_SOURCES = new Set(CASE_FILE.map((report) => report.source))
 
 function optionalDate(args: Args, key: string): string | undefined {
   const value = args[key]
@@ -185,6 +204,84 @@ function chartOf(analysis: Analysis, days: readonly DayRecord[], metric: ChartMe
   }
 }
 
+function requireMachine(context: ToolContext): MachineContext {
+  if (!context.machine) {
+    throw new ToolInputError('No cabinet logs are loaded in this session. Start a session from logs.janus first.')
+  }
+  return context.machine
+}
+
+function cabinetDays(machine: MachineContext, args: Args, fallbackDays: number): MachineDay[] {
+  const { daily } = machine.analysis
+  const from = optionalDate(args, 'from')
+  const to = optionalDate(args, 'to')
+  const days =
+    from || to
+      ? daily.filter((day) => (!from || day.date >= from) && (!to || day.date <= to))
+      : daily.slice(-fallbackDays)
+  if (days.length === 0) {
+    throw new ToolInputError(`No cabinet telemetry in that range. It covers ${daily[0].date} to ${daily[daily.length - 1].date}.`)
+  }
+  return days
+}
+
+function cabinetChart(machine: MachineContext, args: Args, metric: ChartMetric, title: string): ChartSpec {
+  const days = cabinetDays(machine, args, DEFAULT_CABINET_DAYS)
+  if (days.length > MAX_DAILY_ROWS) throw new ToolInputError(`Charts hold up to ${MAX_DAILY_ROWS} days; narrow the range.`)
+  const values = days.map((day) => (metric === 'cabinet_wh' ? day.wh : day.maxCpuC))
+  return {
+    title,
+    metric,
+    unit: metric === 'cabinet_wh' ? 'Wh' : '°C',
+    kind: metric === 'cabinet_wh' && days.length <= 40 ? 'bar' : 'line',
+    points: days.map((day, index) => ({ date: day.date, value: values[index], flagged: false })),
+    baseline: round1(values.reduce((sum, value) => sum + value, 0) / values.length)
+  }
+}
+
+function sealOutput(seal: MachineContext['seal']) {
+  return {
+    algorithm: seal.algorithm,
+    sealed_fingerprint: seal.fingerprint,
+    current_fingerprint: seal.current,
+    sealed_at: seal.sealedAt,
+    checked_at: seal.checkedAt,
+    intact: seal.intact
+  }
+}
+
+function explanationsOutput(cross: CrossCheck) {
+  return {
+    incident: {
+      date: cross.incident.date,
+      excess_kwh_above_baseline: cross.incident.excessKwh,
+      extra_load_kw_over_24h: cross.incident.extraLoadKw
+    },
+    energy_budget: {
+      cabinet_max_possible_wh_per_day: cross.budget.ceilingDailyWh,
+      cabinet_mean_wh_per_day: cross.budget.meanDailyWh,
+      share_of_excess_cabinet_could_draw: formatShare(cross.budget.sharePct),
+      excess_equals_years_of_cabinet_use: cross.budget.yearsOfUse
+    },
+    telemetry_coverage: {
+      last_sample: cross.coverage.lastSampleAt,
+      reaches_incident_day: cross.coverage.reachesIncident,
+      hours_short_of_incident_day: cross.coverage.hoursShort
+    },
+    explanations: cross.explanations.map((item) => ({
+      claim: item.claim,
+      raised_by: item.source,
+      verdict: VERDICT_LABELS[item.verdict],
+      evidence: item.evidence
+    }))
+  }
+}
+
+function explanationsSummary(cross: CrossCheck): string {
+  const count = (verdict: string) => cross.explanations.filter((item) => item.verdict === verdict).length
+  return `${count('ruled_out')} ruled out, ${count('unlikely')} don’t fit, ${count('open')} open`
+}
+
 const RANGE_PROPERTIES = {
   from: { type: 'string', description: 'First day to include, YYYY-MM-DD. Omit to start at the beginning of the log.' },
   to: { type: 'string', description: 'Last day to include, YYYY-MM-DD. Omit to run to the end of the log.' }
@@ -195,7 +292,7 @@ const TOOLS: AgentTool[] = [
     spec: {
       name: 'investigate_log',
       description:
-        'Run the standard investigation in one call: anomaly scan, integrity audit, statistics for the whole log, and the cost of the abnormal consumption. Start here for any broad request or before writing a report.',
+        'Run the standard investigation in one call: anomaly scan, integrity audit, statistics for the whole log, the cost of the abnormal consumption and, when cabinet logs are loaded, the cabinet cross-check (energy budget, forensic checks, the Dossier explanations tested). Start here for any broad request or before writing a report.',
       parameters: {
         type: 'object',
         properties: {
@@ -214,14 +311,27 @@ const TOOLS: AgentTool[] = [
         runTool('summarize_period', {}, context),
         runTool('estimate_impact', { tariff_per_kwh: tariff, currency }, context)
       ])
+      const { machine } = context
       return {
         output: {
           anomalies: anomalies.output,
           integrity: integrity.output,
           statistics: statistics.output,
-          impact: impact.output
+          impact: impact.output,
+          cabinet: machine
+            ? {
+                ...explanationsOutput(machine.cross),
+                forensic_checks: machine.cross.checks.map(({ label, passed, detail }) => ({ check: label, passed, detail })),
+                evidence_seal_intact: machine.seal.intact
+              }
+            : 'No cabinet logs loaded'
         },
-        summary: [anomalies.summary, integrity.summary, impact.summary].join(' · ')
+        summary: [
+          anomalies.summary,
+          integrity.summary,
+          impact.summary,
+          ...(machine ? [explanationsSummary(machine.cross)] : [])
+        ].join(' · ')
       }
     }
   },
@@ -461,7 +571,7 @@ const TOOLS: AgentTool[] = [
           metric: {
             type: 'string',
             enum: METRICS,
-            description: 'usage = logged kWh per day, meter_change = meter movement per day, reading = cumulative meter reading, load_kw = average load.'
+            description: 'usage = logged kWh per day, meter_change = meter movement per day, reading = cumulative meter reading, load_kw = average load, cabinet_wh = the arcade cabinet’s own energy per day, cabinet_peak_c = its hottest CPU reading per day. Cabinet charts default to the last 30 days of telemetry.'
           },
           title: { type: 'string', description: 'Short chart title.' },
           ...RANGE_PROPERTIES
@@ -470,10 +580,13 @@ const TOOLS: AgentTool[] = [
       }
     },
     label: (args) => `Drawing chart · ${typeof args['title'] === 'string' ? args['title'] : 'records'}`,
-    run: (args, { analysis }) => {
+    run: (args, context) => {
       const metric = args['metric'] as ChartMetric
       if (!METRICS.includes(metric)) throw new ToolInputError(`metric must be one of ${METRICS.join(', ')}`)
-      const chart = chartOf(analysis, select(analysis, args), metric, text(args, 'title').slice(0, 80))
+      const title = text(args, 'title').slice(0, 80)
+      const chart = metric.startsWith('cabinet_')
+        ? cabinetChart(requireMachine(context), args, metric, title)
+        : chartOf(context.analysis, select(context.analysis, args), metric, title)
       return {
         output: { shown_to_analyst: true, title: chart.title, points: chart.points.length },
         summary: `${chart.points.length} points`,
@@ -485,7 +598,7 @@ const TOOLS: AgentTool[] = [
     spec: {
       name: 'generate_pdf_report',
       description:
-        'Write a formal investigation report as a PDF. The app adds the case header, key figures, a consumption chart, integrity checks and, optionally, the full records table. You supply the narrative. Gather the evidence with the other tools first, and write every number from their results. Write like a professional investigator: plain, factual sentences, no Markdown, no em dashes, no emphatic or promotional words, no rhetorical openers.',
+        'Write a formal investigation report as a PDF. The app adds the case header, key figures, a consumption chart, integrity checks, the cabinet cross-check with the evidence seal when cabinet logs are loaded and, optionally, the full records table. You supply the narrative. Gather the evidence with the other tools first, and write every number from their results. Write like a professional investigator: plain, factual sentences, no Markdown, no em dashes, no emphatic or promotional words, no rhetorical openers.',
       parameters: {
         type: 'object',
         properties: {
@@ -511,7 +624,7 @@ const TOOLS: AgentTool[] = [
       }
     },
     label: () => 'Writing PDF report',
-    run: async (args, { analysis, files }) => {
+    run: async (args, { analysis, files, machine }) => {
       const findings = Array.isArray(args['findings']) ? args['findings'].slice(0, 12) : []
       const input: ReportInput = {
         title: text(args, 'title').slice(0, 120),
@@ -533,7 +646,8 @@ const TOOLS: AgentTool[] = [
       }
       if (input.findings.length === 0) throw new ToolInputError('findings needs at least one entry')
 
-      const file = await files.savePdf(input.title, buildReportHtml(input, analysis, new Date()))
+      const evidence = machine ? { analysis: machine.analysis, cross: machine.cross, seal: await machine.verify() } : null
+      const file = await files.savePdf(input.title, buildReportHtml(input, analysis, new Date(), evidence))
       return {
         output: { saved: true, file: file.name, findings: input.findings.length },
         summary: file.name,
@@ -746,7 +860,7 @@ const TOOLS: AgentTool[] = [
   {
     spec: {
       name: 'create_memo',
-      description: 'Write a one-page memo or notice as a PDF, for example to a facilities manager or the utility. Plain, formal prose; no Markdown.',
+      description: 'Write a one-page memo or notice as a PDF, for example to the Department of Electricity, a facilities manager or a fellow agent. Plain, formal prose; no Markdown.',
       parameters: {
         type: 'object',
         properties: {
@@ -771,6 +885,250 @@ const TOOLS: AgentTool[] = [
         output: { saved: true, file: file.name },
         summary: file.name,
         attachment: { kind: 'file', id: randomUUID(), format: 'pdf', name: file.name, path: file.path, bytes: file.bytes, description: `Memo to ${memo.to}` }
+      }
+    }
+  },
+  {
+    spec: {
+      name: 'inspect_cabinet',
+      description:
+        'Overview of the arcade cabinet’s own telemetry from logs.janus: identity, coverage, power draw, supply rail, temperatures, opening hours, reboots, hardware changes, maintenance, forensic checks and the evidence seal.',
+      parameters: { type: 'object', properties: {} }
+    },
+    label: () => 'Inspecting the arcade cabinet',
+    run: (_args, context) => {
+      const { analysis, cross, seal } = requireMachine(context)
+      const failed = cross.checks.filter((check) => !check.passed).length
+      return {
+        output: {
+          machine: analysis.machine,
+          coverage: {
+            first_sample: analysis.coverage.start,
+            last_sample: analysis.coverage.end,
+            hours_present: analysis.coverage.samples,
+            hours_expected: analysis.coverage.expected
+          },
+          power: {
+            mean_w: analysis.power.meanW,
+            peak_w: analysis.power.peakW,
+            peak_at: analysis.power.peakAt,
+            mean_wh_per_day: analysis.power.meanDailyWh,
+            max_possible_wh_per_day: analysis.power.ceilingDailyWh
+          },
+          supply_rail: {
+            min_v: analysis.rail.minV,
+            max_v: analysis.rail.maxV,
+            within_tolerance: analysis.rail.withinTolerance,
+            monitor_checks: analysis.rail.monitorChecks,
+            monitor_alerts: analysis.rail.monitorAlerts
+          },
+          thermal: {
+            mean_cpu_c: analysis.thermal.meanCpuC,
+            peak_cpu_c: analysis.thermal.peakCpuC,
+            peak_at: analysis.thermal.peakAt,
+            fan_ramps: analysis.thermal.fanRamps,
+            throttled_hours: analysis.thermal.throttledHours,
+            last_reading: analysis.thermal.latest
+          },
+          opening_hours: `${analysis.activity.openHour}:00 to ${analysis.activity.closeHour}:00`,
+          mean_players_per_day: analysis.activity.meanPlayers,
+          reboots: {
+            uptime_resets: analysis.boots.resets,
+            boots_in_journal: analysis.boots.journaled,
+            boots_without_uptime_reset: analysis.boots.silent,
+            resets_missing_from_journal: analysis.boots.unjournaledResets
+          },
+          hardware_changes: analysis.hardwareChanges,
+          maintenance: analysis.maintenance,
+          forensic_checks: cross.checks.map(({ label, passed, detail }) => ({ check: label, passed, detail })),
+          evidence_seal: sealOutput(seal)
+        },
+        summary: failed ? `${failed} of ${cross.checks.length} checks need review` : `All ${cross.checks.length} checks passed`
+      }
+    }
+  },
+  {
+    spec: {
+      name: 'query_telemetry',
+      description: `Read the cabinet’s telemetry for a date range. daily gives energy, peak power, hottest CPU reading, cabinet air temperature, active hours and players per day (up to ${MAX_DAILY_ROWS} days). hourly gives every sample: state, power, 5 V rail, CPU and air temperature, CPU load, fan, uptime and memory (up to ${MAX_HOURLY_ROWS} hours).`,
+      parameters: {
+        type: 'object',
+        properties: {
+          ...RANGE_PROPERTIES,
+          resolution: { type: 'string', enum: ['daily', 'hourly'], description: 'Default daily.' }
+        }
+      }
+    },
+    label: (args) => `Reading cabinet telemetry · ${args['resolution'] === 'hourly' ? 'hourly' : 'daily'} · ${rangeLabel(args)}`,
+    run: (args, context) => {
+      const machine = requireMachine(context)
+      if (args['resolution'] === 'hourly') {
+        const from = optionalDate(args, 'from')
+        const to = optionalDate(args, 'to')
+        const samples =
+          from || to
+            ? machine.log.hourly.filter((sample) => {
+                const date = localDate(sample.at)
+                return (!from || date >= from) && (!to || date <= to)
+              })
+            : machine.log.hourly.slice(-24)
+        if (samples.length === 0) {
+          const { start, end } = machine.analysis.coverage
+          throw new ToolInputError(`No cabinet telemetry in that range. It covers ${localDate(start)} to ${localDate(end)}.`)
+        }
+        if (samples.length > MAX_HOURLY_ROWS) {
+          throw new ToolInputError(`Hourly data is limited to ${MAX_HOURLY_ROWS} hours. Narrow the range or use daily.`)
+        }
+        return {
+          output: {
+            resolution: 'hourly',
+            count: samples.length,
+            samples: samples.map((sample) => ({
+              at: sample.at,
+              state: sample.active ? 'active' : 'standby',
+              power_w: sample.powerW,
+              rail_v: sample.railV,
+              cpu_temp_c: sample.cpuTempC,
+              air_temp_c: sample.airTempC,
+              cpu_util_pct: sample.cpuUtilPct,
+              fan_rpm: sample.fanRpm,
+              uptime_h: sample.uptimeH,
+              memory_mb: sample.memoryMb
+            }))
+          },
+          summary: `${samples.length} hourly samples`
+        }
+      }
+      const days = cabinetDays(machine, args, 14)
+      if (days.length > MAX_DAILY_ROWS) {
+        throw new ToolInputError(`Daily data is limited to ${MAX_DAILY_ROWS} days. Narrow the range.`)
+      }
+      return {
+        output: {
+          resolution: 'daily',
+          count: days.length,
+          days: days.map((day) => ({
+            date: day.date,
+            hours: day.hours,
+            energy_wh: day.wh,
+            peak_w: day.peakW,
+            max_cpu_c: day.maxCpuC,
+            mean_air_c: day.meanAirC,
+            active_hours: day.activeHours,
+            players: day.players
+          }))
+        },
+        summary: `${days.length} ${days.length === 1 ? 'day' : 'days'} of telemetry`
+      }
+    }
+  },
+  {
+    spec: {
+      name: 'read_journal',
+      description: 'Search the cabinet’s system journal: boots, restarts, maintenance, thermal and network messages. Filter by date range, level, service or text.',
+      parameters: {
+        type: 'object',
+        properties: {
+          ...RANGE_PROPERTIES,
+          level: { type: 'string', enum: JOURNAL_LEVELS },
+          service: { type: 'string', description: 'For example systemd, game-service, thermal, network, maintenance.' },
+          contains: { type: 'string', description: 'Text the message must contain.' },
+          limit: { type: 'number', description: '1 to 60. Default 25.' }
+        }
+      }
+    },
+    label: (args) => {
+      const contains = typeof args['contains'] === 'string' ? args['contains'].trim() : ''
+      return `Searching cabinet journal · ${contains ? `“${contains.slice(0, 30)}”` : rangeLabel(args)}`
+    },
+    run: (args, context) => {
+      const machine = requireMachine(context)
+      const from = optionalDate(args, 'from')
+      const to = optionalDate(args, 'to')
+      const level = text(args, 'level', false).toUpperCase()
+      const service = text(args, 'service', false).toLowerCase()
+      const contains = text(args, 'contains', false).toLowerCase()
+      const limit = Math.round(optionalNumber(args, 'limit', 1, 60) ?? 25)
+      const matches = machine.log.journal.filter((entry) => {
+        const date = localDate(entry.at)
+        return (
+          (!from || date >= from) &&
+          (!to || date <= to) &&
+          (!level || entry.level === level) &&
+          (!service || entry.service.toLowerCase().includes(service)) &&
+          (!contains || entry.message.toLowerCase().includes(contains))
+        )
+      })
+      return {
+        output: {
+          matches: matches.length,
+          shown: Math.min(limit, matches.length),
+          entries: matches.slice(0, limit).map((entry) => ({
+            at: entry.at,
+            service: entry.service,
+            level: entry.level,
+            message: entry.message
+          }))
+        },
+        summary: `${matches.length} ${matches.length === 1 ? 'entry' : 'entries'}`
+      }
+    }
+  },
+  {
+    spec: {
+      name: 'test_explanations',
+      description:
+        'Test the explanations for the spike against the evidence: whether the cabinet could have drawn the energy, the three causes the Energy Dossier raises (HVAC startup, harmonics, phase imbalance), a meter fault, and signs the telemetry was edited. Returns a verdict and evidence for each, the energy budget, and whether the telemetry covers the incident day.',
+      parameters: { type: 'object', properties: {} }
+    },
+    label: () => 'Testing the official explanations',
+    run: (_args, context) => {
+      const { cross } = requireMachine(context)
+      return { output: explanationsOutput(cross), summary: explanationsSummary(cross) }
+    }
+  },
+  {
+    spec: {
+      name: 'verify_evidence',
+      description: 'Re-hash logs.janus now and compare it with the SHA-256 seal taken when the session was created, to show whether the evidence file has changed.',
+      parameters: { type: 'object', properties: {} }
+    },
+    label: () => 'Verifying the evidence seal',
+    run: async (_args, context) => {
+      const seal = await requireMachine(context).verify()
+      return {
+        output: sealOutput(seal),
+        summary: seal.intact ? `Seal intact · ${seal.current.slice(0, 12)}…` : 'File changed since sealing'
+      }
+    }
+  },
+  {
+    spec: {
+      name: 'case_timeline',
+      description: 'One timeline across every source: the Energy Dossier meter log, the cabinet telemetry, and case file reports (marked unverified).',
+      parameters: { type: 'object', properties: RANGE_PROPERTIES }
+    },
+    label: (args) => `Building case timeline · ${rangeLabel(args)}`,
+    run: (args, context) => {
+      const { cross } = requireMachine(context)
+      const from = optionalDate(args, 'from')
+      const to = optionalDate(args, 'to')
+      const events = cross.timeline.filter((event) => {
+        const date = localDate(event.at)
+        return (!from || date >= from) && (!to || date <= to)
+      })
+      return {
+        output: {
+          count: events.length,
+          events: events.map((event) => ({
+            at: event.at,
+            event: event.title,
+            detail: event.detail,
+            source: event.source,
+            evidence: REPORTED_SOURCES.has(event.source) ? 'reported, unverified' : 'measured'
+          }))
+        },
+        summary: `${events.length} events`
       }
     }
   },
