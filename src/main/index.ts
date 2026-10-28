@@ -1,6 +1,6 @@
 import { join } from 'node:path'
 import { app, BrowserWindow, shell } from 'electron'
-import icon from '../assets/icon.png?asset'
+import icon from '../assets/logo.png?asset'
 import { registerBackend } from '../backend'
 import { registerIpc } from './ipc/register'
 import { loadCase } from './machine/cases'

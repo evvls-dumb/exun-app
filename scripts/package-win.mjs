@@ -42,7 +42,7 @@ try {
       artifactName: bundleKey
         ? 'Janus-${version}-win-${arch}-testers.${ext}'
         : 'Janus-${version}-win-${arch}.${ext}',
-      win: { icon: 'src/assets/icon.png' },
+      win: { icon: 'src/assets/logo.png' },
       portable: { requestExecutionLevel: 'user' }
     }
   })
