@@ -116,13 +116,13 @@ export default function LedgerWidget({ analysis, area, revealed }: LedgerWidgetP
                     {formatNumber(day.usage)}
                   </td>
                   <td className={styles.number}>
-                    {day.delta === null ? '—' : formatNumber(day.delta)}
+                    {day.delta === null ? 'n/a' : formatNumber(day.delta)}
                   </td>
                   <td
                     className={`${styles.number} ${styles.wide} ${diff === 0 ? styles.muted : ''}`}
                     data-off={day.mismatch || undefined}
                   >
-                    {diff === null ? '—' : signed(diff)}
+                    {diff === null ? 'n/a' : signed(diff)}
                   </td>
                   <td className={styles.barColumn}>
                     <span className={styles.bar} data-status={status}>

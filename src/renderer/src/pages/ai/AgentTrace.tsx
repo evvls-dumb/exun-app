@@ -1,12 +1,6 @@
 import { useState } from 'react'
 import {
-  Activity,
   Calculator,
-  Fingerprint,
-  Gamepad2,
-  Gavel,
-  ScrollText,
-  Waypoints,
   ChartColumn,
   FlaskConical,
   ListOrdered,
@@ -17,7 +11,6 @@ import {
   ChevronRight,
   CircleCheck,
   Coins,
-  FileDiff,
   FileSpreadsheet,
   FileText,
   GitCompareArrows,
@@ -50,14 +43,7 @@ const TOOL_ICONS: Record<string, LucideIcon> = {
   simulate_scenario: FlaskConical,
   calculate: Calculator,
   create_memo: Mail,
-  case_notes: NotebookPen,
-  inspect_cabinet: Gamepad2,
-  query_telemetry: Activity,
-  read_journal: ScrollText,
-  test_explanations: Gavel,
-  verify_evidence: Fingerprint,
-  case_timeline: Waypoints,
-  compare_game_source: FileDiff
+  case_notes: NotebookPen
 }
 
 interface AgentTraceProps {

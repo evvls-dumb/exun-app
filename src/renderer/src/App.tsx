@@ -17,7 +17,11 @@ export default function App() {
   const showLogin = useCallback(() => show('login'), [show])
   const goToGreeting = useCallback(() => go('greeting'), [go])
   const goToSession = useCallback(() => go('session'), [go])
-  const logout = useCallback(() => go('login'), [go])
+  const logout = useCallback(() => {
+    // Logging out locks the vault: the key is wiped from memory, not just hidden.
+    const lock = (globalThis as unknown as { janus?: { vault?: { lock: () => Promise<unknown> } } }).janus?.vault?.lock()
+    void Promise.resolve(lock).finally(() => go('login'))
+  }, [go])
 
   function openSession(next: Session) {
     setSession(next)

@@ -8,10 +8,12 @@ import { useFloatingTip } from './FloatingTip'
 import { chartTheme, readPalette, withAlpha, type Palette } from './palette'
 import styles from './NivoCharts.module.css'
 
-export const USAGE_CAP_KWH = 60
+export const USAGE_CAP_KWH = 45
 
-const CAP_TOP_KWH = 5
-const BREAK_KWH = 1.8
+const BREAK_KWH = 2
+/** Axis height given to everything above the cap, on a log scale, so a 500 kWh day and a 2,700 kWh day
+ *  still differ in height instead of both being cut at the same line. */
+const LOG_SPAN_KWH = 30
 const DIMMED_ALPHA = 0.38
 const MARGIN = { top: 18, right: 10, bottom: 36, left: 34 }
 const VALUE_PILL = { width: 50, height: 22, gap: 4 }
@@ -24,6 +26,11 @@ const ActiveContext = createContext<number | null>(null)
 
 export function isCapped(day: DayRecord): boolean {
   return day.usage > USAGE_CAP_KWH
+}
+
+/** Height on the axis for a value: linear up to the cap, then compressed logarithmically above it. */
+export function plotValue(value: number): number {
+  return value <= USAGE_CAP_KWH ? value : USAGE_CAP_KWH + LOG_SPAN_KWH * Math.log10(value / USAGE_CAP_KWH)
 }
 
 function status(day: DayRecord): { label: string; tone: TipTone } {
@@ -63,7 +70,7 @@ function usageTip(day: DayRecord, baseline: number) {
         }
       ]}
       status={status(day)}
-      note={isCapped(day) ? `Bar is cut at ${USAGE_CAP_KWH} kWh so normal days stay readable.` : undefined}
+      note={isCapped(day) ? `Above ${USAGE_CAP_KWH} kWh the bar is drawn on a compressed scale so normal days stay readable. Taller still means more, but not in proportion.` : undefined}
     />
   )
 }
@@ -119,7 +126,7 @@ function guideLinesLayer({ analysis, palette }: LayerContext): BarCustomLayer<Da
     if (!bar || active === null) return null
 
     const day = analysis.days[active]
-    const y = (yScale as unknown as Scale)(Math.min(day.usage, USAGE_CAP_KWH))
+    const y = (yScale as unknown as Scale)(plotValue(day.usage))
     return (
       <line
         className={styles.pop}
@@ -144,7 +151,7 @@ function guidePillsLayer({ analysis, palette }: LayerContext): BarCustomLayer<Da
 
     const day = analysis.days[active]
     const color = barColor(day, palette)
-    const y = (yScale as unknown as Scale)(Math.min(day.usage, USAGE_CAP_KWH))
+    const y = (yScale as unknown as Scale)(plotValue(day.usage))
     const centre = bar.x + bar.width / 2
     const dayX = clamp(
       centre - DAY_PILL.width / 2,
@@ -194,11 +201,11 @@ function baselineLayer({ analysis, palette }: LayerContext): BarCustomLayer<Datu
 function meterLayer({ analysis, palette }: LayerContext): BarCustomLayer<Datum> {
   return function MeterDerived({ bars, yScale }) {
     const y = yScale as unknown as Scale
+    // One dot per day, joined by a line. A day that runs off the linear scale gets its dot at the top of its bar.
     const points = bars.flatMap((bar) => {
-      const delta = analysis.days[bar.data.index].delta
-      return delta === null
-        ? []
-        : [{ x: bar.x + bar.width / 2, y: y(Math.min(delta, USAGE_CAP_KWH)), over: delta > USAGE_CAP_KWH }]
+      const day = analysis.days[bar.data.index]
+      if (day.delta === null) return []
+      return [{ x: bar.x + bar.width / 2, y: y(plotValue(isCapped(day) ? day.usage : day.delta)) }]
     })
 
     return (
@@ -211,17 +218,9 @@ function meterLayer({ analysis, palette }: LayerContext): BarCustomLayer<Datum> 
           strokeWidth={1.25}
           strokeLinejoin="round"
         />
-        {points.map((point) =>
-          point.over ? (
-            <path
-              key={point.x}
-              d={`M ${point.x} ${point.y - 5} L ${point.x + 4.5} ${point.y + 3} L ${point.x - 4.5} ${point.y + 3} Z`}
-              fill={palette.text}
-            />
-          ) : (
-            <circle key={point.x} cx={point.x} cy={point.y} r={3} fill={palette.text} />
-          )
-        )}
+        {points.map((point) => (
+          <circle key={point.x} cx={point.x} cy={point.y} r={3.5} fill={palette.text} stroke={palette.card} strokeWidth={1.5} />
+        ))}
       </g>
     )
   }
@@ -230,8 +229,8 @@ function meterLayer({ analysis, palette }: LayerContext): BarCustomLayer<Datum> 
 function cutLayer({ analysis, palette }: LayerContext): BarCustomLayer<Datum> {
   return function Cuts({ bars, yScale }) {
     const y = yScale as unknown as Scale
-    const top = y(USAGE_CAP_KWH - CAP_TOP_KWH)
-    const bottom = y(USAGE_CAP_KWH - CAP_TOP_KWH - BREAK_KWH)
+    const top = y(USAGE_CAP_KWH)
+    const bottom = y(USAGE_CAP_KWH - BREAK_KWH)
 
     return (
       <g className={styles.reveal} pointerEvents="none">
@@ -309,11 +308,16 @@ export default function UsageBars({ analysis }: UsageBarsProps) {
   const [active, setActive] = useState<number | null>(null)
   const tip = useFloatingTip()
 
+  const axisMax = useMemo(
+    () => Math.max(USAGE_CAP_KWH, ...analysis.days.map((day) => plotValue(Math.max(day.usage, day.delta ?? 0)))) + 3,
+    [analysis]
+  )
+
   const data = useMemo<Datum[]>(
     () =>
       analysis.days.map((day) => ({
         day: String(Number(day.date.slice(8))),
-        value: Math.min(day.usage, USAGE_CAP_KWH)
+        value: plotValue(day.usage)
       })),
     [analysis]
   )
@@ -349,7 +353,7 @@ export default function UsageBars({ analysis }: UsageBarsProps) {
             margin={MARGIN}
             padding={0.46}
             borderRadius={4}
-            valueScale={{ type: 'linear', min: 0, max: USAGE_CAP_KWH }}
+            valueScale={{ type: 'linear', min: 0, max: axisMax }}
             colors={(bar) => {
               const color = barColor(analysis.days[bar.index], palette)
               return active === null || active === bar.index ? color : withAlpha(color, DIMMED_ALPHA)

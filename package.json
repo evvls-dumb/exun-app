@@ -7,8 +7,6 @@
   "scripts": {
     "dev": "electron-vite dev -w",
     "build": "electron-vite build",
-    "dist:win": "npm run typecheck && npm run build && node scripts/package-win.mjs",
-    "dist:win:testers": "npm run typecheck && npm run build && node scripts/package-win.mjs --bundle-ai-key",
     "preview": "electron-vite preview",
     "typecheck": "tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.web.json"
   },
@@ -33,7 +31,6 @@
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.1.2",
     "electron": "^45.0.0",
-    "electron-builder": "^26.18.0",
     "electron-vite": "^6.0.0",
     "typescript": "^7.0.2",
     "vite": "^8.3.5"

@@ -1,26 +1,31 @@
 :root {
-  --color-bg: #0b0b0d;
-  --color-surface: #141417;
-  --color-frame: #0f0f12;
-  --color-card: #18181d;
-  --color-surface-hover: #1b1b20;
-  --color-border: #26262c;
-  --color-border-strong: #3a3a43;
-  --color-text: #ffffff;
-  --color-text-muted: #8d8d99;
-  --color-accent: #402096;
-  --color-accent-hover: #4a28ab;
-  --color-accent-active: #371a80;
-  --color-accent-bright: #9680f2;
-  --color-warn: #ffb454;
-  --color-info: #6fb3ff;
+  /* Ink base, cool charcoal panels, an instrument, not a dashboard. */
+  --color-bg: #0a0c10;
+  --color-surface: #0f131a;
+  --color-frame: #06080c;
+  --color-card: #131922;
+  --color-surface-hover: #19202b;
+  --color-border: #212a35;
+  --color-border-strong: #374552;
+  --color-text: #e9ecf0;
+  --color-text-muted: #79838f;
+
+  /* Electric indigo: interactive + the tool's own signal. */
+  --color-accent: #5733e0;
+  --color-accent-hover: #6a47f0;
+  --color-accent-active: #4526b8;
+  --color-accent-bright: #b3a5fb;
+
+  /* Amber seal/classification ink; red reserved for tamper + critical. */
+  --color-seal: #e0a53c;
+  --color-warn: #e0a53c;
+  --color-info: #5aa9ff;
   --color-success: #5fd39a;
-  --color-danger: #ff7b7b;
+  --color-danger: #ff6b6b;
 
   --font-sans: 'Geist', system-ui, sans-serif;
   --font-mono: 'Geist Mono', ui-monospace, monospace;
-  --font-numeric: 'Inter Variable', var(--font-sans);
 
-  --radius: 8px;
-  --radius-lg: 14px;
+  --radius: 6px;
+  --radius-lg: 10px;
 }

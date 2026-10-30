@@ -1,11 +1,13 @@
 import { join } from 'node:path'
 import { app, BrowserWindow, shell } from 'electron'
-import icon from '../assets/logo.png?asset'
+import { safeExternal } from './session/netguard'
+import icon from '../assets/icon.png?asset'
 import { registerBackend } from '../backend'
 import { registerIpc } from './ipc/register'
-import { loadCase } from './machine/cases'
+import { lockVault } from './investigations/store'
+import { guardIpc, hardenSession, hardenWindow, loadPrefs, lockOnSleep } from './session/hardening'
 
-const WINDOW_BACKGROUND = '#0b0b0d'
+const WINDOW_BACKGROUND = '#06080c'
 
 function createWindow(): void {
   const window = new BrowserWindow({
@@ -22,14 +24,18 @@ function createWindow(): void {
       preload: join(__dirname, '../preload/index.js'),
       contextIsolation: true,
       nodeIntegration: false,
-      sandbox: true
+      sandbox: true,
+      devTools: !app.isPackaged,
+      webSecurity: true,
+      allowRunningInsecureContent: false
     }
   })
 
+  hardenWindow(window)
   window.once('ready-to-show', () => window.show())
 
   window.webContents.setWindowOpenHandler(({ url }) => {
-    shell.openExternal(url)
+    if (safeExternal(url)) void shell.openExternal(url)
     return { action: 'deny' }
   })
 
@@ -40,11 +46,15 @@ function createWindow(): void {
   }
 }
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
   app.setAppUserModelId('com.janus.app')
+  guardIpc()
+  hardenSession()
+  await loadPrefs()
   registerIpc()
-  registerBackend(loadCase)
+  registerBackend()
   createWindow()
+  lockOnSleep((reason) => void lockVault(reason))
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()

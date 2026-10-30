@@ -3,7 +3,6 @@ import type { Analysis } from '@shared/meter'
 import { useChat } from '@/hooks/useChat'
 import { formatNumber, formatShortDate, todayIso } from '@/lib/format'
 import type { SendOptions } from '@/hooks/useChat'
-import AgentNotice from './AgentNotice'
 import styles from './AiPage.module.css'
 import ChatPanel from './ChatPanel'
 import Composer from './Composer'
@@ -36,19 +35,21 @@ function dayStatus(day: Analysis['days'][number]): string {
   return 'Normal'
 }
 
-const SUGGESTIONS = [
-  'Investigate the case and write a PDF report',
-  'Test the Dossier’s explanations against the cabinet',
-  'Show what was removed from the game source',
-  'Verify the evidence seal on logs.janus'
-]
+function buildSuggestions(analysis: Analysis): string[] {
+  const spike = analysis.days.find((day) => day.spike)
+  return [
+    'Investigate this log and write a PDF report',
+    ...(spike ? [`Chart the ${formatShortDate(spike.date)} spike and estimate its cost`] : []),
+    'Audit the log’s integrity',
+    'Export the flagged days to CSV'
+  ]
+}
 
 interface AiPageProps {
   analysis: Analysis
-  sessionId: string
 }
 
-export default function AiPage({ analysis, sessionId }: AiPageProps) {
+export default function AiPage({ analysis }: AiPageProps) {
   const chat = useChat()
   const [collapsed, setCollapsed] = useState(readCollapsed)
 
@@ -62,11 +63,11 @@ export default function AiPage({ analysis, sessionId }: AiPageProps) {
   const caseData = useMemo(
     () => ({
       entries: analysis.days.map(({ date, reading, usage }) => ({ date, reading, usage })),
-      today: todayIso(),
-      sessionId
+      today: todayIso()
     }),
-    [analysis, sessionId]
+    [analysis]
   )
+  const suggestions = useMemo(() => buildSuggestions(analysis), [analysis])
   const mentions = useMemo<MenuOption<string>[]>(
     () =>
       [...analysis.days]
@@ -108,24 +109,21 @@ export default function AiPage({ analysis, sessionId }: AiPageProps) {
         needsKey={needsKey}
         canStoreKey={status?.canStoreKey ?? true}
         canChangeKey={status?.source === 'stored'}
-        suggestions={SUGGESTIONS}
+        suggestions={suggestions}
         onSuggest={(text) => void chat.send(text, options)}
         onRetry={() => chat.retry(options)}
         onDismissError={chat.dismissError}
         onChangeKey={chat.clearKey}
         onSaveKey={chat.saveKey}
         footer={
-          <>
-            <Composer
-              mentions={mentions}
-              running={chat.running}
-              disabled={status === null || needsKey}
-              placeholder={needsKey ? 'Add an API key to start' : 'Ask about this case…'}
-              onSend={(text) => void chat.send(text, options)}
-              onStop={chat.cancel}
-            />
-            <AgentNotice />
-          </>
+          <Composer
+            mentions={mentions}
+            running={chat.running}
+            disabled={status === null || needsKey}
+            placeholder={needsKey ? 'Add an API key to start' : 'Ask about this case…'}
+            onSend={(text) => void chat.send(text, options)}
+            onStop={chat.cancel}
+          />
         }
       />
     </div>
