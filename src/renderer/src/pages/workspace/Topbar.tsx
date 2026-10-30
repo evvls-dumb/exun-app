@@ -1,16 +1,16 @@
 import logo from '@assets/logo.png'
-import { AGENT_CODENAME } from '@/config'
+import { useCases } from './investigations/caseStore'
 import type { View } from './Sidebar'
+import SearchBox from './SearchBox'
 import styles from './Topbar.module.css'
 
 interface TopbarProps {
   view: View
-  site?: string
+  onNavigate: (v: View) => void
 }
 
-export default function Topbar({ view, site }: TopbarProps) {
-  const arcade = site?.split(',')[0]
-
+export default function Topbar({ view, onNavigate }: TopbarProps) {
+  const callsign = useCases().settings.agent
   return (
     <header className={styles.topbar}>
       <div className={styles.logoSlot}>
@@ -19,27 +19,32 @@ export default function Topbar({ view, site }: TopbarProps) {
 
       <div className={styles.intros}>
         <div className={styles.intro} data-visible={view === 'home' || undefined} aria-hidden={view !== 'home'}>
-          <h1 className={styles.greeting}>Hello, {AGENT_CODENAME}</h1>
-          <p className={styles.subtitle}>EXUN is suspended. The case isn’t.</p>
+          <h1 className={styles.greeting}>Hello, {callsign}</h1>
+          <p className={styles.subtitle}>Ready for today’s challenges?</p>
         </div>
-        <div className={styles.intro} data-visible={view === 'machine' || undefined} aria-hidden={view !== 'machine'}>
-          <h1 className={styles.greeting}>
-            Arcade Box <span className={styles.accent}>Analysis</span>
-          </h1>
-          <p className={styles.subtitle}>{arcade ? `${arcade} · cabinet telemetry from logs.janus` : 'Cabinet telemetry from logs.janus'}</p>
+        <div
+          className={styles.intro}
+          data-visible={view === 'investigations' || undefined}
+          aria-hidden={view !== 'investigations'}
+        >
+          <h1 className={styles.greeting}>Investigations</h1>
+          <p className={styles.subtitle}>Drop in the evidence. Janus checks it before it weighs it</p>
         </div>
-        <div className={styles.intro} data-visible={view === 'source' || undefined} aria-hidden={view !== 'source'}>
-          <h1 className={styles.greeting}>
-            Game Source <span className={styles.accent}>Forensics</span>
-          </h1>
-          <p className={styles.subtitle}>Check the game code for any changes or tamper</p>
+        <div className={styles.intro} data-visible={view === 'privacy' || undefined} aria-hidden={view !== 'privacy'}>
+          <h1 className={styles.greeting}>Privacy</h1>
+          <p className={styles.subtitle}>What is stored, who can read it, and what ever leaves this machine</p>
         </div>
         <div className={styles.intro} data-visible={view === 'ai' || undefined} aria-hidden={view !== 'ai'}>
           <h1 className={styles.greeting}>
             Janus <span className={styles.accent}>AI Agent</span>
           </h1>
-          <p className={styles.subtitle}>Investigates the meter log, the arcade box and the game source, and writes reports</p>
+          <p className={styles.subtitle}>Investigates the case data, charts it and writes reports</p>
         </div>
+      </div>
+
+      <SearchBox onNavigate={onNavigate} />
+      <div className={styles.clearance}>
+        Agent {callsign} <span aria-hidden="true">·</span> Clearance &Delta;
       </div>
     </header>
   )

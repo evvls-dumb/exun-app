@@ -1,6 +1,5 @@
 import { randomUUID } from 'node:crypto'
 import type { AgentStep, AiEvent, Attachment, ChatMessage, Conversation, SendRequest } from '../../shared/ai'
-import { crossCheck, type MachineCase } from '../../shared/machine'
 import { analyseLog } from '../../shared/meter'
 import { buildSystemPrompt } from '../agent/prompt'
 import type { NoteStore } from '../agent/notes'
@@ -34,8 +33,7 @@ export class ChatService {
     private readonly provider: LlmProvider,
     private readonly store: ConversationStore,
     private readonly files: FileSink,
-    private readonly notes: NoteStore,
-    private readonly loadCase: (sessionId: string) => Promise<MachineCase>
+    private readonly notes: NoteStore
   ) {}
 
   send(request: SendRequest, emit: (event: AiEvent) => void): string {
@@ -78,18 +76,10 @@ export class ChatService {
       emit({ type: 'started', runId, conversation: this.store.summary(conversation), userMessage })
 
       const today = request.caseData?.today ?? new Date().toISOString().slice(0, 10)
-      const caseData = request.mode === 'agent' ? request.caseData : undefined
-      let context: ToolContext | null = null
-      if (caseData) {
-        const analysis = analyseLog(today, caseData.entries)
-        const machineCase = caseData.sessionId ? await this.loadCase(caseData.sessionId).catch(() => null) : null
-        context = {
-          analysis,
-          files: this.files,
-          notes: this.notes,
-          machine: machineCase && { ...machineCase, cross: crossCheck(machineCase.analysis, analysis) }
-        }
-      }
+      const agent = request.mode === 'agent' && request.caseData !== undefined
+      const context: ToolContext | null = agent
+        ? { analysis: analyseLog(today, request.caseData!.entries), files: this.files, notes: this.notes }
+        : null
 
       let reply = ''
       const steps: AgentStep[] = []

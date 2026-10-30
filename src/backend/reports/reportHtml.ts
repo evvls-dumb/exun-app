@@ -1,21 +1,5 @@
 import { formatNumber, formatShortDate } from '../../shared/format'
-import {
-  VERDICT_LABELS,
-  formatShare,
-  localDate,
-  localTime,
-  type CrossCheck,
-  type EvidenceSeal,
-  type MachineAnalysis
-} from '../../shared/machine'
-import { GAME_SOURCE, SOURCE_ANALYSIS } from '../../shared/gameSource'
 import { isFlagged, type Analysis, type DayRecord } from '../../shared/meter'
-
-export interface ReportEvidence {
-  analysis: MachineAnalysis
-  cross: CrossCheck
-  seal: EvidenceSeal
-}
 
 export type Severity = 'critical' | 'high' | 'medium' | 'low'
 
@@ -153,92 +137,10 @@ li { margin-bottom: 5px; }
 .review { font-weight: 600; color: #b3261e; }
 tr.flagged td { font-weight: 600; }
 .records { break-before: page; }
-.verdict { font-size: 7.5pt; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; white-space: nowrap; }
-.verdict.ruled_out { color: #1f6b3a; }
-.verdict.unlikely { color: #9a5b00; }
-.verdict.open { color: #b3261e; }
-.evidence td { vertical-align: top; }
-.sub { margin: 18px 0 6px; font-size: 10pt; font-weight: 600; break-after: avoid; }
-.hash { font-family: Consolas, "Cascadia Mono", monospace; font-size: 8pt; word-break: break-all; }
 .note { margin-top: 28px; padding-top: 8px; border-top: 1px solid #e2e2e2; font-size: 7.5pt; color: #777; }
 `
 
-function sourceSection(heading: (text: string) => string): string {
-  const analysis = SOURCE_ANALYSIS
-  const removed = analysis.removedClasses
-  const figures = [
-    ['Lines in the original source', String(analysis.original.lines.length)],
-    ['Lines in the recovered source', String(analysis.recovered.lines.length)],
-    ['Lines removed', String(analysis.removedLines)],
-    ['Classes removed', removed.map((item) => item.name).join(', ') || 'None'],
-    ['Recovered lines that still use a removed class', String(analysis.dangling.length)],
-    ['Recovered source compiles', analysis.compiles ? 'Yes' : 'No']
-  ]
-  return `${heading('Game source comparison')}
-<p>${escape(GAME_SOURCE.title)}, ${escape(GAME_SOURCE.file)}. The original is compared line by line with the copy ${escape(GAME_SOURCE.recovered.origin.toLowerCase())}.</p>
-<table class="figures"><tbody>
-  ${figures.map(([label, value]) => `<tr><td>${label}</td><td class="num">${escape(value)}</td></tr>`).join('')}
-</tbody></table>
-${analysis.dangling.length
-    ? `<h3 class="sub">Lines that depend on the removed class</h3>
-<table class="evidence"><thead><tr><th class="num">Line</th><th>Code</th></tr></thead><tbody>
-  ${analysis.dangling.map((use) => `<tr><td class="num">${use.line}</td><td class="hash">${escape(use.text)}</td></tr>`).join('')}
-</tbody></table>`
-    : ''}`
-}
-
-function moment(at: string): string {
-  return `${formatShortDate(localDate(at))} ${localDate(at).slice(0, 4)}, ${localTime(at)}`
-}
-
-function cabinetSection(evidence: ReportEvidence, heading: (text: string) => string): string {
-  const { analysis, cross, seal } = evidence
-  const figures = [
-    ['Mean cabinet draw', `${formatNumber(analysis.power.meanW, 2)} W`],
-    ['Highest recorded draw', `${formatNumber(analysis.power.peakW, 2)} W`],
-    ['Most energy the cabinet could use in a day', `${formatNumber(cross.budget.ceilingDailyWh / 1000, 2)} kWh`],
-    ['Share of the excess the cabinet could account for', formatShare(cross.budget.sharePct)],
-    ['Excess expressed as years of normal cabinet use', `${formatNumber(cross.budget.yearsOfUse)} years`]
-  ]
-  return `${heading('Arcade cabinet cross-check')}
-<p>${escape(analysis.machine.title)}, ${escape(analysis.machine.site)}. Telemetry runs from ${moment(analysis.coverage.start)} to ${moment(analysis.coverage.end)}, ${formatNumber(analysis.coverage.samples, 0)} hourly samples.</p>
-<table class="figures"><tbody>
-  ${figures.map(([label, value]) => `<tr><td>${label}</td><td class="num">${value}</td></tr>`).join('')}
-</tbody></table>
-<h3 class="sub">Explanations tested</h3>
-<table class="evidence"><thead><tr><th>Explanation</th><th>Raised by</th><th>Verdict</th><th>Evidence</th></tr></thead><tbody>
-  ${cross.explanations
-    .map(
-      (item) =>
-        `<tr><td>${escape(item.claim)}</td><td>${escape(item.source)}</td><td><span class="verdict ${item.verdict}">${VERDICT_LABELS[item.verdict]}</span></td><td>${escape(item.evidence)}</td></tr>`
-    )
-    .join('')}
-</tbody></table>
-<h3 class="sub">Cabinet log forensics</h3>
-<table class="evidence"><thead><tr><th>Check</th><th>Detail</th><th class="num">Result</th></tr></thead><tbody>
-  ${cross.checks
-    .map(
-      (check) =>
-        `<tr><td>${escape(check.label)}</td><td>${escape(check.detail)}</td><td class="num${check.passed ? '' : ' review'}">${check.passed ? 'Pass' : 'Review'}</td></tr>`
-    )
-    .join('')}
-</tbody></table>
-${heading('Evidence seal')}
-<table class="evidence"><tbody>
-  <tr><td>Algorithm</td><td>${seal.algorithm}</td></tr>
-  <tr><td>Fingerprint at sealing</td><td class="hash">${seal.fingerprint}</td></tr>
-  <tr><td>Fingerprint now</td><td class="hash">${seal.current}</td></tr>
-  <tr><td>Sealed</td><td>${escape(new Date(seal.sealedAt).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }))}</td></tr>
-  <tr><td>Status</td><td class="${seal.intact ? '' : 'review'}">${seal.intact ? 'Intact: the logs file is unchanged since sealing' : 'Changed: the logs file differs from the sealed copy'}</td></tr>
-</tbody></table>`
-}
-
-export function buildReportHtml(
-  input: ReportInput,
-  analysis: Analysis,
-  generatedAt: Date,
-  evidence: ReportEvidence | null = null
-): string {
+export function buildReportHtml(input: ReportInput, analysis: Analysis, generatedAt: Date): string {
   const { days } = analysis
   const first = days[0]
   const last = days[days.length - 1]
@@ -322,7 +224,6 @@ ${chart(analysis)}
   <td><span>Records</span>${days.length} daily readings</td>
   <td><span>Prepared</span>${escape(generated)}</td>
   <td><span>Reference</span>${reference}</td>
-  ${evidence ? `<td><span>Evidence</span>${evidence.seal.intact ? 'Sealed, intact' : 'Seal broken'}</td>` : ''}
 </tr></table>
 ${summary}
 ${keyFigures}
@@ -330,10 +231,8 @@ ${consumption}
 ${findingsHeading}
 ${findings}
 ${integrity}
-${evidence ? cabinetSection(evidence, heading) : ''}
-${sourceSection(heading)}
 ${actions}
-<p class="note">Figures in this report are computed directly from the Energy Dossier meter log${evidence ? ' and the cabinet telemetry in logs.janus' : ''}. Statements about causes are inferences and should be verified on site before any action is taken.</p>
+<p class="note">Figures in this report are computed directly from the meter log. Statements about causes are inferences and should be verified on site before any action is taken.</p>
 ${appendix}
 </body>
 </html>`

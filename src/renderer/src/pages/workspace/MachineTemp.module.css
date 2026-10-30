@@ -22,12 +22,11 @@
 .value {
   margin: 0;
   font-family: var(--font-mono);
-  font-size: 21px;
+  font-size: 24px;
   font-weight: 600;
 }
 
 .unit {
-  margin-left: 4px;
   font-size: 14px;
   color: var(--color-text-muted);
 }

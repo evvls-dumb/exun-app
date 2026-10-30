@@ -17,19 +17,6 @@
   white-space: nowrap;
 }
 
-.heading {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 10px;
-}
-
-.note {
-  margin: 0;
-  font-size: 13px;
-  color: var(--color-text-muted);
-}
-
 .form {
   display: flex;
   flex-direction: column;
@@ -56,3 +43,27 @@
 .input:focus {
   border-color: var(--color-text);
 }
+
+/* ---- setup and unlock ---- */
+.card { display: flex; flex-direction: column; gap: 14px; width: min(440px, 100%); }
+.lead { margin: 0; color: var(--color-text-muted); font-size: 13.5px; line-height: 20px; }
+.stepTag { font-family: var(--font-mono); font-size: 10.5px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--color-seal); }
+.field { display: flex; flex-direction: column; gap: 6px; }
+.label { font-size: 12px; color: var(--color-text-muted); }
+.wideInput { composes: input; width: 100%; }
+.meter { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; }
+.meter i { height: 4px; border-radius: 2px; background: var(--color-border); }
+.meter[data-score='1'] i:nth-child(-n + 1) { background: var(--color-danger); }
+.meter[data-score='2'] i:nth-child(-n + 2) { background: var(--color-warn); }
+.meter[data-score='3'] i:nth-child(-n + 3) { background: var(--color-success); }
+.meter[data-score='4'] i:nth-child(-n + 4) { background: var(--color-success); }
+.meterNote { display: flex; justify-content: space-between; font-size: 12px; color: var(--color-text-muted); }
+.error { padding: 10px 12px; font-size: 12.5px; line-height: 18px; border-radius: var(--radius); background: color-mix(in srgb, var(--color-danger) 10%, transparent); border: 1px solid color-mix(in srgb, var(--color-danger) 38%, transparent); }
+.note { padding: 10px 12px; font-size: 12.5px; line-height: 18px; border-radius: var(--radius); background: color-mix(in srgb, var(--color-warn) 9%, transparent); border: 1px solid color-mix(in srgb, var(--color-warn) 35%, transparent); }
+.row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.linkBtn { background: none; border: 0; padding: 0; color: var(--color-accent-bright); font-size: 12.5px; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+.keyBox { padding: 16px; font-family: var(--font-mono); font-size: 15px; line-height: 26px; letter-spacing: 0.06em; text-align: center; background: var(--color-frame); border: 1px solid var(--color-seal); border-radius: var(--radius); color: var(--color-seal); user-select: text; word-spacing: 6px; }
+.check { display: flex; align-items: flex-start; gap: 9px; font-size: 13px; line-height: 19px; cursor: pointer; }
+.check input { margin-top: 3px; accent-color: var(--color-accent); }
+.small { font-size: 12px; color: var(--color-text-muted); }
+.fileName { font-family: var(--font-mono); font-size: 12px; color: var(--color-text); overflow-wrap: anywhere; }

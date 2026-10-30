@@ -1,9 +1,8 @@
-import { createHash, randomUUID } from 'node:crypto'
+import { randomUUID } from 'node:crypto'
 import { existsSync } from 'node:fs'
 import { readFile, stat, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { app } from 'electron'
-import { parseJanusHeader } from '../../shared/janus'
 import type { Session, StoredSession } from '../../shared/session'
 
 const STORE_FILE = 'sessions.json'
@@ -29,10 +28,6 @@ function withAvailability(session: StoredSession): Session {
   return { ...session, available: existsSync(session.logsPath) }
 }
 
-export function fingerprintOf(data: Buffer): string {
-  return createHash('sha256').update(data).digest('hex')
-}
-
 export async function listSessions(): Promise<Session[]> {
   const sessions = await readAll()
   return sessions
@@ -44,18 +39,12 @@ export async function createSession(logsPath: string): Promise<Session> {
   const info = await stat(logsPath)
   if (!info.isFile()) throw new Error('The logs path must be a file')
 
-  const data = await readFile(logsPath)
-  const header = parseJanusHeader(data.toString('utf8'))
   const now = new Date().toISOString()
   const session: StoredSession = {
     id: randomUUID(),
     logsPath,
     createdAt: now,
-    lastOpenedAt: now,
-    fingerprint: fingerprintOf(data),
-    sealedAt: now,
-    machineTitle: header.machineTitle,
-    site: header.site
+    lastOpenedAt: now
   }
 
   await writeAll([...(await readAll()), session])
@@ -70,23 +59,4 @@ export async function openSession(id: string): Promise<Session> {
   session.lastOpenedAt = new Date().toISOString()
   await writeAll(sessions)
   return withAvailability(session)
-}
-
-export async function getSession(id: string): Promise<StoredSession> {
-  const session = (await readAll()).find((candidate) => candidate.id === id)
-  if (!session) throw new Error('Session not found')
-  return session
-}
-
-export async function sealSession(id: string, fingerprint: string, machineTitle: string, site: string): Promise<StoredSession> {
-  const sessions = await readAll()
-  const session = sessions.find((candidate) => candidate.id === id)
-  if (!session) throw new Error('Session not found')
-
-  session.fingerprint = fingerprint
-  session.sealedAt = new Date().toISOString()
-  session.machineTitle = machineTitle
-  session.site = site
-  await writeAll(sessions)
-  return session
 }

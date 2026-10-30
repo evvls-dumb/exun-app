@@ -29,13 +29,8 @@ function parseCaseData(value: unknown): CaseData | undefined {
   if (!Array.isArray(entries) || entries.length < 2 || entries.length > MAX_ENTRIES) {
     throw new TypeError('caseData.entries must hold 2 to 5000 records')
   }
-  const sessionId = input['sessionId']
-  if (sessionId !== undefined && (typeof sessionId !== 'string' || sessionId.length === 0 || sessionId.length > 100)) {
-    throw new TypeError('caseData.sessionId must be a short string')
-  }
   return {
     today,
-    ...(sessionId !== undefined && { sessionId }),
     entries: entries.map((entry) => {
       const record = (typeof entry === 'object' && entry !== null ? entry : {}) as Record<string, unknown>
       const { date, reading, usage } = record

@@ -13,7 +13,7 @@ export interface AgentStep {
   durationMs?: number
 }
 
-export type ChartMetric = 'usage' | 'meter_change' | 'reading' | 'load_kw' | 'cabinet_wh' | 'cabinet_peak_c'
+export type ChartMetric = 'usage' | 'meter_change' | 'reading' | 'load_kw'
 
 export interface ChartPoint {
   date: string
@@ -73,7 +73,7 @@ export type AiMode = 'agent' | 'chat'
 export type AiModelChoice = 'auto' | 'fast'
 
 export const AI_MODE_OPTIONS: readonly { value: AiMode; label: string; hint: string }[] = [
-  { value: 'agent', label: 'Agent', hint: 'Investigates the meter log and the cabinet' },
+  { value: 'agent', label: 'Agent', hint: 'Investigates the loaded case data' },
   { value: 'chat', label: 'Chat', hint: 'General assistant, no case data' }
 ]
 
@@ -85,7 +85,6 @@ export const AI_MODEL_OPTIONS: readonly { value: AiModelChoice; label: string; h
 export interface CaseData {
   entries: MeterEntry[]
   today: string
-  sessionId?: string
 }
 
 export const MAX_MESSAGE_CHARS = 8_000

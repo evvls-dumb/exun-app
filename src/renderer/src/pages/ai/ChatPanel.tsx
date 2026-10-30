@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { RotateCcw, TriangleAlert } from 'lucide-react'
 import DotSphere from '@/components/DotSphere'
-import { AGENT_CODENAME } from '@/config'
+import { useCases } from '@/pages/workspace/investigations/caseStore'
 import type { ChatError, PendingReply } from '@/hooks/useChat'
 import type { AgentStep, Attachment, ChatMessage } from '@shared/ai'
 import AgentTrace from './AgentTrace'
@@ -12,7 +12,6 @@ import styles from './ChatPanel.module.css'
 
 const NEAR_BOTTOM_PX = 96
 const RETRYABLE: readonly ChatError['code'][] = ['rate_limited', 'offline', 'failed']
-const WELCOME = `Let’s Dive, ${AGENT_CODENAME}`
 const TYPE_START_MS = 250
 const TYPE_STEP_MS = 65
 
@@ -105,8 +104,9 @@ export default function ChatPanel({
   const scrollRef = useRef<HTMLDivElement>(null)
   const stickRef = useRef(true)
   const empty = messages.length === 0 && reply === null
-  const typed = useTypewriter(WELCOME)
-  const typedAll = typed.length === WELCOME.length
+  const welcome = `Let’s Dive, ${useCases().settings.agent}`
+  const typed = useTypewriter(welcome)
+  const typedAll = typed.length === welcome.length
 
   useEffect(() => {
     const scroller = scrollRef.current
@@ -136,7 +136,7 @@ export default function ChatPanel({
         <div ref={scrollRef} className={styles.scroll} onScroll={handleScroll}>
           {empty ? (
             <div className={styles.welcome}>
-              <h3 className={styles.heading} aria-label={WELCOME}>
+              <h3 className={styles.heading} aria-label={welcome}>
                 <span aria-hidden="true">{typed}</span>
                 <span
                   className={styles.caret}
@@ -145,8 +145,8 @@ export default function ChatPanel({
                 />
               </h3>
               <p className={styles.sub} data-visible={typedAll || undefined}>
-                Ask about the meter log or the arcade box. Janus answers from the evidence and won’t
-                guess at causes it can’t show.
+                Ask about the loaded meter records. Janus answers from the data and won’t guess at
+                causes it can’t show.
               </p>
               <ul className={styles.suggestions} data-visible={typedAll || undefined}>
                 {suggestions.map((suggestion) => (

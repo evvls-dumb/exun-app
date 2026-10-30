@@ -1,46 +1,51 @@
-import { useState, type FormEvent } from 'react'
-import Button from '@/components/Button'
-import DecryptText from '@/components/DecryptText'
-import styles from './LoginPage.module.css'
+import { useEffect, useState } from 'react'
+import type { JanusApi } from '@shared/api'
+import type { AuthResult, VaultState } from '@shared/privacy'
+import RecoveryScreen from './RecoveryScreen'
+import SetupFlow from './SetupFlow'
+import UnlockScreen from './UnlockScreen'
+import styles from './Auth.module.css'
 
 interface LoginPageProps {
-  onLogin: (key: string) => void
+  onLogin: () => void
 }
 
+/** The way in. First run: set up the vault. After that: open it. There is no account to log in to; the
+ *  passphrase is what decrypts your cases, so a wrong one gets nothing. */
 export default function LoginPage({ onLogin }: LoginPageProps) {
-  const [key, setKey] = useState('')
-  const canSubmit = key.trim().length > 0
+  const api = (globalThis as unknown as { janus?: JanusApi }).janus?.vault
+  const [state, setState] = useState<VaultState | null>(null)
+  const [upgraded, setUpgraded] = useState<AuthResult | null>(null)
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-    if (canSubmit) onLogin(key)
+  useEffect(() => {
+    // Without the desktop app there is no vault to open: a plain browser preview just continues.
+    if (!api) {
+      onLogin()
+      return
+    }
+    void api.state().then((s) => {
+      if (s.mode === 'sealed' && !s.locked) onLogin()
+      else setState(s)
+    })
+  }, [api, onLogin])
+
+  if (!state) return <main className={styles.page} />
+
+  if (upgraded?.recoveryKey) {
+    return <RecoveryScreen recoveryKey={upgraded.recoveryKey} onDone={onLogin} title="Vault upgraded: new recovery key" setup={false} />
   }
 
-  return (
-    <main className={styles.page}>
-      <div className={styles.heading}>
-        <h1 className={styles.title}>
-          <DecryptText text="Still here, Agent?" />
-        </h1>
-        <p className={styles.note}>Agency access is suspended. Your case stays on this device.</p>
-      </div>
-
-      <form className={styles.form} onSubmit={handleSubmit}>
-        <input
-          className={styles.input}
-          type="password"
-          value={key}
-          onChange={(event) => setKey(event.target.value)}
-          placeholder="Enter your key"
-          aria-label="Access key"
-          autoComplete="off"
-          spellCheck={false}
-          autoFocus
-        />
-        <Button type="submit" disabled={!canSubmit}>
-          Login
-        </Button>
-      </form>
-    </main>
+  const needsSetup = state.empty || state.mode === 'plain'
+  return needsSetup ? (
+    <SetupFlow onDone={onLogin} onRestored={setState} />
+  ) : (
+    <UnlockScreen
+      initial={state}
+      onReset={setState}
+      onDone={(r) => {
+        if (r.recoveryKey) setUpgraded(r)
+        else onLogin()
+      }}
+    />
   )
 }

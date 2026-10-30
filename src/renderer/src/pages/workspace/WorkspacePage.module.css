@@ -12,13 +12,61 @@
   height: 100%;
   padding: 28px 64px 32px 24px;
   overflow: hidden;
-  background: var(--color-frame);
+  background:
+    repeating-linear-gradient(90deg, transparent 0 63px, rgb(120 130 150 / 0.03) 63px 64px),
+    repeating-linear-gradient(0deg, transparent 0 63px, rgb(120 130 150 / 0.022) 63px 64px),
+    radial-gradient(130% 90% at 80% -10%, #12131c 0%, var(--color-frame) 62%);
+}
+
+.classbar {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.classbar b {
+  color: var(--color-text);
+  font-weight: 500;
+  letter-spacing: 0.1em;
+}
+
+.classbar .sep {
+  flex: 1;
+  height: 1px;
+  background: repeating-linear-gradient(90deg, var(--color-border) 0 6px, transparent 6px 12px);
+}
+
+.classbar .live {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--color-seal);
+}
+
+.classbar .live i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--color-seal);
+  box-shadow: 0 0 8px var(--color-seal);
 }
 
 .frame > header,
 .frame > .body {
   position: relative;
   z-index: 1;
+}
+
+/* The header sits above the page body so search results can open over it. */
+.frame > header {
+  z-index: 30;
 }
 
 .body {

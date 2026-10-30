@@ -1,14 +1,14 @@
 import { useEffect, useRef, type CSSProperties } from 'react'
-import { BrainCircuit, FileCode, Gamepad2, House, LogOut } from 'lucide-react'
+import { BrainCircuit, CircleUserRound, FolderSearch, House, LogOut, ShieldCheck } from 'lucide-react'
 import styles from './Sidebar.module.css'
 
-export type View = 'home' | 'machine' | 'source' | 'ai'
+export type View = 'home' | 'investigations' | 'ai' | 'privacy'
 
 const NAV_ITEMS = [
   { id: 'home', label: 'Home', icon: House },
-  { id: 'machine', label: 'Arcade box', icon: Gamepad2 },
-  { id: 'source', label: 'Game source', icon: FileCode },
-  { id: 'ai', label: 'AI chat', icon: BrainCircuit }
+  { id: 'investigations', label: 'Investigations', icon: FolderSearch },
+  { id: 'ai', label: 'AI chat', icon: BrainCircuit },
+  { id: 'privacy', label: 'Privacy', icon: ShieldCheck }
 ] as const
 
 const LEAD_MS = 260
@@ -57,6 +57,9 @@ export default function Sidebar({ view, onViewChange, onLogout }: SidebarProps) 
       </ul>
 
       <div className={styles.pill} data-ambient-fade>
+        <button className={styles.item} type="button" aria-label="Account" title="Account">
+          <CircleUserRound size={19} strokeWidth={1.75} aria-hidden="true" />
+        </button>
         <button
           className={styles.item}
           type="button"
